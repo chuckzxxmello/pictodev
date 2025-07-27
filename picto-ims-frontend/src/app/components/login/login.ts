@@ -9,191 +9,190 @@ import { filter } from 'rxjs/operators';
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
-  template: `
-    <div class="login-container">
-      <div class="login-card">
-        <div class="login-header">
-          <h1>PICTO Inventory Management System</h1>
-          <h3>Provincial Government Capitol of Cavite</h3>
-        </div>
+template: `
+  <body>
+    <div class="login-page">
+      <div class="login-container">
+        <div class="login-card"
+        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+          <div class="logo-placeholder">LOGO</div>
 
-        <div *ngIf="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </div>
+          <h2 class="system-title">PICTO Inventory Management System</h2>
 
-        <div *ngIf="successMessage" class="success-message">
-          {{ successMessage }}
-        </div>
-
-        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate class="login-form">
-          <div class="form-field">
-            <label for="username">Username:</label>
+          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate class="login-form">
             <input 
               id="username"
-              type="text" 
-              formControlName="username" 
+              type="text"
+              placeholder="username"
+              formControlName="username"
               required
               [class.error]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched">
+
             <div *ngIf="loginForm.get('username')?.invalid && loginForm.get('username')?.touched" class="field-error">
               Username is required
             </div>
-          </div>
 
-          <div class="form-field">
-            <label for="password">Password:</label>
             <input 
               id="password"
-              type="password" 
-              formControlName="password" 
+              type="password"
+              placeholder="password"
+              formControlName="password"
               required
               [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+
             <div *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" class="field-error">
               Password is required
             </div>
-          </div>
 
-          <button 
-            type="submit" 
-            [disabled]="loginForm.invalid || isLoading"
-            class="login-button">
-            {{ isLoading ? 'Signing in...' : 'Sign In' }}
-          </button>
-        </form>
-
-        <div class="debug-info" *ngIf="showDebugInfo">
-          <p><strong>Debug Info:</strong></p>
-          <p>Current URL: {{ currentUrl }}</p>
-          <p>Return URL: {{ returnUrl || 'None' }}</p>
-          <p>Auth Status: {{ authStatus }}</p>
+            <button 
+              type="submit" 
+              [disabled]="loginForm.invalid || isLoading"
+              class="login-button">
+              {{ isLoading ? 'Signing in...' : 'Log in' }}
+            </button>
+          </form>
         </div>
       </div>
+      <div class="footer">
+        <div class="footer-text">
+          PARA SA BAYAN, MULA SA BAYAN
+        </div>
+        <img src="assets/images/pgc-logo.png" alt="Logo" class="footer-logo">
+      </div>
     </div>
-  `,
-  styles: [`
-    .login-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 20px;
-    }
+  </body>
+`,
+styles: [`
+  @font-face {
+    font-family: 'Montserrat';
+    src: url('/assets/fonts/Montserrat.ttf') format('truetype');
+  }
 
-    .login-card {
-      background: white;
-      border-radius: 12px;
-      padding: 40px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-      width: 100%;
-      max-width: 400px;
-    }
+  body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Montserrat';
+  }
 
-    .login-header {
-      text-align: center;
-      margin-bottom: 30px;
-    }
+  .login-page {
+    display: flex;
+    justify-content: center; /* centers horizontally */
+    align-items: center;     /* centers vertically */
+    min-height: 100vh;       /* full height of screen */
+    background: url('/assets/images/bg.png') no-repeat center center fixed;
+    background-size: cover;
+    position: relative;
+  }
 
-    .login-header h1 {
-      color: #333;
-      margin-bottom: 8px;
-      font-size: 1.5rem;
-    }
+  .login-card {
+    z-index: 1;
+    background: white;
+    border-radius: 12px;
+    padding: 40px 30px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+  }
 
-    .login-header h3 {
-      color: #666;
-      margin: 0;
-      font-size: 1rem;
-      font-weight: normal;
-    }
+  .logo-placeholder {
+    width: 70px;
+    height: 70px;
+    background: black;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-weight: bold;
+  }
 
-    .error-message {
-      background: #fee;
-      color: #c33;
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 20px;
-      border: 1px solid #fcc;
-    }
+  .system-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 25px;
+    color: #3b3636;
+  }
 
-    .success-message {
-      background: #efe;
-      color: #363;
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 20px;
-      border: 1px solid #cfc;
-    }
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
 
-    .login-form {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
+  .login-form input {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+    transition: border-color 0.3s;
+  }
 
-    .form-field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
+  .login-form input:focus {
+    border-color: #253c90;
+    outline: none;
+  }
 
-    .form-field label {
-      font-weight: 600;
-      color: #333;
-    }
+  .login-form input.error {
+    border-color: #e53e3e;
+  }
 
-    .form-field input {
-      padding: 12px;
-      border: 2px solid #ddd;
-      border-radius: 6px;
-      font-size: 16px;
-      transition: border-color 0.3s;
-    }
+  .field-error {
+    color: #e53e3e;
+    font-size: 13px;
+    text-align: left;
+  }
 
-    .form-field input:focus {
-      outline: none;
-      border-color: #667eea;
-    }
+  .login-button {
+    background: #253c90;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+  }
 
-    .form-field input.error {
-      border-color: #e53e3e;
-    }
+  .login-button:hover:not(:disabled) {
+    background: #1d2f6e;
+    transform: translateY(-1px);
+  }
 
-    .field-error {
-      color: #e53e3e;
-      font-size: 14px;
-    }
+  .login-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .footer {
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    width: 100%; 
+    text-align: center; 
+    padding: 10px; 
+    padding-bottom: 20px;
+    background: transparent;
+  }
+  
+  .footer-text {
+    margin: 0;
+    color: #ffffff;
+    font-size: 34px;
+    font-weight: 800; 
+  }
 
-    .login-button {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 6px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-
-    .login-button:hover:not(:disabled) {
-      transform: translateY(-1px);
-    }
-
-    .login-button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .debug-info {
-      margin-top: 20px;
-      padding: 12px;
-      background: #f5f5f5;
-      border-radius: 6px;
-      font-size: 12px;
-      color: #666;
-    }
-  `]
+  .footer-logo {
+    position: absolute;
+    right: 50px;  /* distance from right edge */
+    top: 40%;
+    transform: translateY(-50%); /* perfectly center vertically */
+    height: 70px; /* adjust size */
+  }
+`]
 })
 export class Login implements OnInit {
   loginForm: FormGroup;
