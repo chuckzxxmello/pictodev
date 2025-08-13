@@ -6,14 +6,19 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+// Configure global Npgsql DateTime behavior
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+AppContext.SetSwitch("Npgsql.DisableDateTimeInfinityConversions", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add DbContext with PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register AuthService with DI container
+// Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IRequisitionService, RequisitionService>();
 
 // Add authentication with JWT Bearer
 var jwtKey = builder.Configuration["Jwt:Key"];
@@ -98,10 +103,10 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Build the app - this must be AFTER registering services
+// Build the app
 var app = builder.Build();
 
-// Use CORS middleware - AFTER building app
+// Use CORS
 app.UseCors("AllowAngularDevClient");
 
 if (app.Environment.IsDevelopment())
@@ -112,8 +117,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "PictoIMS API V1");
-        // Optional: serve swagger at root:
-        // c.RoutePrefix = string.Empty;
     });
 }
 

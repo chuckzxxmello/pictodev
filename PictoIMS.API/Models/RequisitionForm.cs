@@ -11,56 +11,72 @@ namespace PictoIMS.API.Models
         [Column("rf_id")]
         public int RfId { get; set; }
 
+        [Required(ErrorMessage = "Requester name is required")]
+        [StringLength(100, ErrorMessage = "Requester name cannot exceed 100 characters")]
         [Column("requester_name")]
-        public required string RequesterName { get; set; }
+        public string RequesterName { get; set; } = null!;
 
+        [Required(ErrorMessage = "Requester position is required")]
+        [StringLength(100, ErrorMessage = "Requester position cannot exceed 100 characters")]
         [Column("requester_position")]
-        public required string RequesterPosition { get; set; }
+        public string RequesterPosition { get; set; } = null!;
 
+        [Required(ErrorMessage = "Department is required")]
+        [StringLength(100, ErrorMessage = "Department cannot exceed 100 characters")]
         [Column("department")]
-        public required string Department { get; set; }
+        public string Department { get; set; } = null!;
 
+        [Required(ErrorMessage = "Purpose is required")]
+        [StringLength(500, ErrorMessage = "Purpose cannot exceed 500 characters")]
         [Column("purpose")]
-        public required string Purpose { get; set; }
+        public string Purpose { get; set; } = null!;
 
-        [Column("date_requested")]
-        public DateTime DateRequested { get; set; }
+        [Column("date_requested", TypeName = "timestamp with time zone")]
+        public DateTime? DateRequested { get; set; }
 
+        [StringLength(100, ErrorMessage = "Checked by name cannot exceed 100 characters")]
         [Column("checked_by_name")]
-        public required string CheckedByName { get; set; }
+        public string? CheckedByName { get; set; }
 
+        [StringLength(100, ErrorMessage = "Checked by position cannot exceed 100 characters")]
         [Column("checked_by_position")]
-        public required string CheckedByPosition { get; set; }
+        public string? CheckedByPosition { get; set; }
 
-        [Column("checked_by_date")]
-        public DateTime CheckedByDate { get; set; }
+        [Column("checked_by_date", TypeName = "timestamp with time zone")]
+        public DateTime? CheckedByDate { get; set; }
 
+        [StringLength(100, ErrorMessage = "Approved by name cannot exceed 100 characters")]
         [Column("approved_by_name")]
-        public required string ApprovedByName { get; set; }
+        public string? ApprovedByName { get; set; }
 
+        [StringLength(100, ErrorMessage = "Approved by position cannot exceed 100 characters")]
         [Column("approved_by_position")]
-        public required string ApprovedByPosition { get; set; }
+        public string? ApprovedByPosition { get; set; }
 
-        [Column("approved_by_date")]
-        public DateTime ApprovedByDate { get; set; }
+        [Column("approved_by_date", TypeName = "timestamp with time zone")]
+        public DateTime? ApprovedByDate { get; set; }
 
+        [StringLength(100, ErrorMessage = "Issued by name cannot exceed 100 characters")]
         [Column("issued_by_name")]
-        public required string IssuedByName { get; set; }
+        public string? IssuedByName { get; set; }
 
+        [StringLength(100, ErrorMessage = "Issued by position cannot exceed 100 characters")]
         [Column("issued_by_position")]
-        public required string IssuedByPosition { get; set; }
+        public string? IssuedByPosition { get; set; }
 
-        [Column("issued_by_date")]
-        public DateTime IssuedByDate { get; set; }
+        [Column("issued_by_date", TypeName = "timestamp with time zone")]
+        public DateTime? IssuedByDate { get; set; }
 
+        [StringLength(100, ErrorMessage = "Received by name cannot exceed 100 characters")]
         [Column("received_by_name")]
-        public required string ReceivedByName { get; set; }
+        public string? ReceivedByName { get; set; }
 
+        [StringLength(100, ErrorMessage = "Received by position cannot exceed 100 characters")]
         [Column("received_by_position")]
-        public required string ReceivedByPosition { get; set; }
+        public string? ReceivedByPosition { get; set; }
 
-        [Column("received_by_date")]
-        public DateTime ReceivedByDate { get; set; }
+        [Column("received_by_date", TypeName = "timestamp with time zone")]
+        public DateTime? ReceivedByDate { get; set; }
 
         [Column("is_archived")]
         public bool IsArchived { get; set; } = false;
