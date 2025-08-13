@@ -3,16 +3,24 @@
   "WorkspaceRootPath": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|c:\\users\\user\\downloads\\pictodev\\pictoims.api\\controllers\\requisitioncontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|solutionrelative:controllers\\requisitioncontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|c:\\users\\user\\downloads\\pictodev\\pictoims.api\\controllers\\userscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|solutionrelative:controllers\\userscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|c:\\users\\user\\downloads\\pictodev\\pictoims.api\\services\\requisitionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|solutionrelative:services\\requisitionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|c:\\users\\user\\downloads\\pictodev\\pictoims.api\\data\\applicationdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|solutionrelative:data\\applicationdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|c:\\users\\user\\downloads\\pictodev\\pictoims.api\\services\\irequisitionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|solutionrelative:services\\irequisitionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|c:\\users\\user\\downloads\\pictodev\\pictoims.api\\models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|solutionrelative:models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|c:\\users\\user\\downloads\\pictodev\\pictoims.api\\dtos\\updateuserdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|solutionrelative:dtos\\updateuserdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|c:\\users\\user\\downloads\\pictodev\\pictoims.api\\dtos\\userdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FBC70C54-9B9B-E46D-8CA9-F03E47F94D43}|PictoIMS.API.csproj|solutionrelative:dtos\\userdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -22,45 +30,71 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "RequisitionController.cs",
-              "DocumentMoniker": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\Controllers\\RequisitionController.cs",
-              "RelativeDocumentMoniker": "Controllers\\RequisitionController.cs",
-              "ToolTip": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\Controllers\\RequisitionController.cs",
-              "RelativeToolTip": "Controllers\\RequisitionController.cs",
-              "ViewState": "AgIAABABAAAAAAAAAAAYwCsBAAAAAAAAAAAAAA==",
+              "DocumentIndex": 1,
+              "Title": "ApplicationDbContext.cs",
+              "DocumentMoniker": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\Data\\ApplicationDbContext.cs",
+              "RelativeDocumentMoniker": "Data\\ApplicationDbContext.cs",
+              "ToolTip": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\Data\\ApplicationDbContext.cs",
+              "RelativeToolTip": "Data\\ApplicationDbContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-13T13:54:58.022Z",
+              "WhenOpened": "2025-08-13T15:06:02.194Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "RequisitionService.cs",
-              "DocumentMoniker": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\Services\\RequisitionService.cs",
-              "RelativeDocumentMoniker": "Services\\RequisitionService.cs",
-              "ToolTip": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\Services\\RequisitionService.cs",
-              "RelativeToolTip": "Services\\RequisitionService.cs",
-              "ViewState": "AgIAAKYAAAAAAAAAAAArwLsAAAA1AAAAAAAAAA==",
+              "DocumentIndex": 3,
+              "Title": "UpdateUserDto.cs",
+              "DocumentMoniker": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\DTOs\\UpdateUserDto.cs",
+              "RelativeDocumentMoniker": "DTOs\\UpdateUserDto.cs",
+              "ToolTip": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\DTOs\\UpdateUserDto.cs",
+              "RelativeToolTip": "DTOs\\UpdateUserDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-13T13:53:33.208Z",
+              "WhenOpened": "2025-08-13T15:05:54.266Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "UsersController.cs",
+              "DocumentMoniker": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\Controllers\\UsersController.cs",
+              "RelativeDocumentMoniker": "Controllers\\UsersController.cs",
+              "ToolTip": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\Controllers\\UsersController.cs",
+              "RelativeToolTip": "Controllers\\UsersController.cs",
+              "ViewState": "AgIAAGkAAAAAAAAAAAAAwIUAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-13T15:00:22.394Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
-              "Title": "IRequisitionService.cs",
-              "DocumentMoniker": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\Services\\IRequisitionService.cs",
-              "RelativeDocumentMoniker": "Services\\IRequisitionService.cs",
-              "ToolTip": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\Services\\IRequisitionService.cs",
-              "RelativeToolTip": "Services\\IRequisitionService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAA/AAAAAAAAAA==",
+              "Title": "User.cs",
+              "DocumentMoniker": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\Models\\User.cs",
+              "RelativeDocumentMoniker": "Models\\User.cs",
+              "ToolTip": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\Models\\User.cs",
+              "RelativeToolTip": "Models\\User.cs",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAQwCwAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-13T13:53:08.637Z",
+              "WhenOpened": "2025-08-13T14:59:57.482Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "UserDto.cs",
+              "DocumentMoniker": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\DTOs\\UserDto.cs",
+              "RelativeDocumentMoniker": "DTOs\\UserDto.cs",
+              "ToolTip": "C:\\Users\\User\\Downloads\\pictodev\\PictoIMS.API\\DTOs\\UserDto.cs",
+              "RelativeToolTip": "DTOs\\UserDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-13T14:59:36.298Z",
               "EditorCaption": ""
             }
           ]
