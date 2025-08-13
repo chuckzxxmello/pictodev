@@ -1,12 +1,30 @@
-# Inventory Management System (IMS)
-**Provincial Government Capitol of Cavite — PICTO**
+<img src="https://readme-typing-svg.herokuapp.com?font=Anaheim&size=32&duration=3000&pause=2000&color=1F51FF&width=1000&lines=PICTOIMS;Inventory+Management+System" alt="Typing SVG" />
 
----
+PICTOIMS aims to digitize and centralize all supply and asset tracking for government facility operations.
 
-## Project Overview
-The Inventory Management System (IMS) aims to digitize and centralize all supply and asset tracking for government facility operations.
+## Setup
 
----
+.NET 9 Backend
+
+1. cd C:\Users\User\Downloads\pictodev\PictoIMS.API
+2. dotnet restore
+3. dotnet clean
+4. dotnet run
+
+
+ps.
+- dotnet ef migrations add pictodb
+- psql -U postgres -c "CREATE DATABASE pictodb;"
+- psql -U postgres -d pictodb -f "C:\Users\User\Downloads\pictodb\pictodb.sql" - actual location of the sql file
+
+Angular Frontend
+
+1. cd C:\Users\User\Downloads\pictodev\picto-ims-frontend
+2. npm install
+3. ng serve
+
+ps.
+- npm install --legacy-peer-deps
 
 ## Core Objectives
 - Centralize all facility supply data in a secure PostgreSQL.
@@ -15,8 +33,6 @@ The Inventory Management System (IMS) aims to digitize and centralize all supply
 - Allow real-time updates, searching, and comprehensive reporting.
 - Enable role-based access (Admin & Users).
 - Comprehensive audit trail logging for all transactions and user interactions.
-
----
 
 ## Core Functions
 - **Dashboard** – Real-time inventory overview, stock alerts, recent requisitions.
@@ -29,15 +45,11 @@ The Inventory Management System (IMS) aims to digitize and centralize all supply
 - **User Management** – Role-based access control and user administration. Change password and auth lock.
 - **Audit Trail** – Comprehensive logging of all system activities.
 
----
-
 ## Tech Stack
 - **Frontend:** Razor Pages
 - **Backend:** ASP.NET 9 Core Web Application
 - **Database:** PostgreSQL
 - **Authentication:** ASP.NET Core Identity
-
----
 
 ## Development Plan
 
@@ -61,7 +73,6 @@ The Inventory Management System (IMS) aims to digitize and centralize all supply
 - Authentication & authorization system using ASP.NET Identity.
 - Excel import/export functionality with template validation.
 
-### Phase 3: Frontend Development
 - Responsive dashboard with real-time inventory status.
 - Supply management interfaces (add/edit/delete with modal forms).
 - Advanced search and filtering by category, serial no. and brand.
@@ -74,9 +85,7 @@ The Inventory Management System (IMS) aims to digitize and centralize all supply
 - Database backup and recovery procedures implementation.
 - Documentation delivery (user manual, admin guide, technical documentation).
 
----
-
-## PICTO-IMS Features
+## Features
 
 ### Admin
 - User Management
@@ -97,8 +106,6 @@ The Inventory Management System (IMS) aims to digitize and centralize all supply
 ### Inventory
 - Inventory Records [ADD/UPDATE/DELETE] with Remaining Stock (low stock warnings)
 - Audit PICTO Inventory – items used in PICTO OFFICE (IT Supplies may be complex)
-
----
 
 ## Database Schema
 - `users`
