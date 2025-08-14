@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PictoIMS.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+350521e79a291d3b9039259085d810ca61e2a187")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b4e768869b4e716869e5796dd840dca12655ec0f")]
 [assembly: System.Reflection.AssemblyProductAttribute("PictoIMS.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PictoIMS.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

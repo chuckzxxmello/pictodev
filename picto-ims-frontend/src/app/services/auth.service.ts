@@ -2,7 +2,7 @@ import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { tap, catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { User, LoginRequest, LoginResponse } from '../models';
 
@@ -20,12 +20,15 @@ export class AuthService {
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
+  private initializationComplete = false;
+
   constructor(
     private http: HttpClient,
     private router: Router,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.initializeAuth();
+    this.setupStorageListener();
   }
 
   private isBrowser(): boolean {
@@ -33,19 +36,72 @@ export class AuthService {
   }
 
   private initializeAuth(): void {
-    // Only initialize from localStorage if we're in the browser
-    if (this.isBrowser()) {
+    if (!this.isBrowser()) {
+      this.initializationComplete = true;
+      return;
+    }
+
+    try {
       const token = this.getToken();
       const user = this.getStoredUser();
-      
-      if (token && user) {
+
+      console.log('Auth initialization - Token exists:', !!token, 'User exists:', !!user);
+
+      if (token && user && this.isValidUser(user)) {
         this.currentUserSubject.next(user);
         this.isAuthenticatedSubject.next(true);
+        console.log('User authenticated on initialization:', user);
+      } else {
+        // Clear invalid data
+        this.clearStoredAuth();
+        this.currentUserSubject.next(null);
+        this.isAuthenticatedSubject.next(false);
+        console.log('No valid auth data found on initialization');
       }
+    } catch (error) {
+      console.error('Error during auth initialization:', error);
+      this.clearStoredAuth();
+      this.currentUserSubject.next(null);
+      this.isAuthenticatedSubject.next(false);
+    }
+
+    this.initializationComplete = true;
+  }
+
+  private setupStorageListener(): void {
+    if (this.isBrowser()) {
+      window.addEventListener('storage', (event) => {
+        if (event.key === this.TOKEN_KEY || event.key === this.USER_KEY) {
+          console.log('Storage change detected, refreshing auth state');
+          this.refreshAuthState();
+        }
+      });
+
+      // Also listen for tab focus to refresh auth state
+      window.addEventListener('focus', () => {
+        this.refreshAuthState();
+      });
+    }
+  }
+
+  private isValidUser(user: any): boolean {
+    return user && typeof user === 'object' && 
+           (user.email || user.username) && 
+           user.role;
+  }
+
+  private clearStoredAuth(): void {
+    if (this.isBrowser()) {
+      localStorage.removeItem(this.TOKEN_KEY);
+      localStorage.removeItem(this.USER_KEY);
     }
   }
 
   isLoggedIn(): boolean {
+    if (!this.initializationComplete) {
+      // During initialization, check localStorage directly
+      return this.isBrowser() && !!this.getToken() && !!this.getStoredUser();
+    }
     return this.isAuthenticatedSubject.value;
   }
 
@@ -53,24 +109,32 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${this.API_BASE_URL}/auth/login`, credentials)
       .pipe(
         tap(response => {
+          console.log('Login response:', response);
           if (response.token && response.user) {
             this.setToken(response.token);
             this.setUser(response.user);
             this.currentUserSubject.next(response.user);
             this.isAuthenticatedSubject.next(true);
+            console.log('User logged in successfully:', response.user);
           }
+        }),
+        catchError(error => {
+          console.error('Login error:', error);
+          throw error;
         })
       );
   }
 
   logout(): void {
-    if (this.isBrowser()) {
-      localStorage.removeItem(this.TOKEN_KEY);
-      localStorage.removeItem(this.USER_KEY);
-    }
+    console.log('Logging out user');
+    this.clearStoredAuth();
     this.currentUserSubject.next(null);
     this.isAuthenticatedSubject.next(false);
-    this.router.navigate(['/login']);
+    
+    // Navigate to login without causing navigation loops
+    if (this.router.url !== '/login') {
+      this.router.navigate(['/login']);
+    }
   }
 
   getToken(): string | null {
@@ -94,8 +158,14 @@ export class AuthService {
 
   private getStoredUser(): User | null {
     if (this.isBrowser()) {
-      const userStr = localStorage.getItem(this.USER_KEY);
-      return userStr ? JSON.parse(userStr) : null;
+      try {
+        const userStr = localStorage.getItem(this.USER_KEY);
+        return userStr ? JSON.parse(userStr) : null;
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
+        localStorage.removeItem(this.USER_KEY);
+        return null;
+      }
     }
     return null;
   }
@@ -129,19 +199,53 @@ export class AuthService {
     return this.http.get<User>(`${this.API_BASE_URL}/auth/me`);
   }
 
-  // Helper method to refresh auth state after browser hydration
   refreshAuthState(): void {
-    if (this.isBrowser()) {
+    if (!this.isBrowser()) return;
+
+    try {
       const token = this.getToken();
       const user = this.getStoredUser();
-      
-      if (token && user) {
-        this.currentUserSubject.next(user);
-        this.isAuthenticatedSubject.next(true);
+
+      console.log('Refreshing auth state - Token:', !!token, 'User:', !!user);
+
+      if (token && user && this.isValidUser(user)) {
+        // Only update if state actually changed
+        if (!this.isAuthenticatedSubject.value || 
+            JSON.stringify(this.currentUserSubject.value) !== JSON.stringify(user)) {
+          this.currentUserSubject.next(user);
+          this.isAuthenticatedSubject.next(true);
+          console.log('Auth state refreshed - user authenticated');
+        }
       } else {
-        this.currentUserSubject.next(null);
-        this.isAuthenticatedSubject.next(false);
+        // Only update if state actually changed
+        if (this.isAuthenticatedSubject.value) {
+          this.clearStoredAuth();
+          this.currentUserSubject.next(null);
+          this.isAuthenticatedSubject.next(false);
+          console.log('Auth state refreshed - user not authenticated');
+        }
       }
+    } catch (error) {
+      console.error('Error refreshing auth state:', error);
+      this.clearStoredAuth();
+      this.currentUserSubject.next(null);
+      this.isAuthenticatedSubject.next(false);
     }
+  }
+
+  // Method to wait for initialization to complete
+  waitForInitialization(): Promise<void> {
+    return new Promise(resolve => {
+      if (this.initializationComplete) {
+        resolve();
+      } else {
+        const checkInterval = setInterval(() => {
+          if (this.initializationComplete) {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 10);
+      }
+    });
   }
 }
