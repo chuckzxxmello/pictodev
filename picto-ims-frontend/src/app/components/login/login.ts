@@ -1,293 +1,217 @@
-import { Component, OnInit } from '@angular/core';
+// src/app/auth/login.component.ts
+import { Component, OnInit, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, NonNullableFormBuilder, Validators } from '@angular/forms';
 import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { filter } from 'rxjs/operators';
+import { filter, finalize } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="login-container">
       <div class="login-card">
         <div class="login-header">
           <h1>PICTO Inventory Management System</h1>
-          <h3>Provincial Government Capitol of Cavite</h3>
         </div>
 
-        <div *ngIf="errorMessage" class="error-message">
-          {{ errorMessage }}
+        <div *ngIf="errorMessage()" class="error-message" role="alert">
+          {{ errorMessage() }}
         </div>
 
-        <div *ngIf="successMessage" class="success-message">
-          {{ successMessage }}
+        <div *ngIf="successMessage()" class="success-message" role="status">
+          {{ successMessage() }}
         </div>
 
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate class="login-form">
           <div class="form-field">
-            <label for="username">Username:</label>
-            <input 
+            <input
               id="username"
-              type="text" 
-              formControlName="username" 
-              required
-              [class.error]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched">
-            <div *ngIf="loginForm.get('username')?.invalid && loginForm.get('username')?.touched" class="field-error">
-              Username is required
+              type="text"
+              formControlName="username"
+              placeholder="username"
+              autocomplete="username"
+              [attr.aria-invalid]="loginForm.controls.username.invalid && loginForm.controls.username.touched"
+              [class.error]="loginForm.controls.username.invalid && loginForm.controls.username.touched" />
+            <div *ngIf="loginForm.controls.username.invalid && loginForm.controls.username.touched" class="field-error">
+              Username is required.
             </div>
           </div>
 
           <div class="form-field">
-            <label for="password">Password:</label>
-            <input 
+            <input
               id="password"
-              type="password" 
-              formControlName="password" 
-              required
-              [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
-            <div *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" class="field-error">
-              Password is required
+              type="password"
+              formControlName="password"
+              placeholder="password"
+              autocomplete="current-password"
+              [attr.aria-invalid]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
+              [class.error]="loginForm.controls.password.invalid && loginForm.controls.password.touched" />
+            <div *ngIf="loginForm.controls.password.invalid && loginForm.controls.password.touched" class="field-error">
+              Password is required.
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            [disabled]="loginForm.invalid || isLoading"
-            class="login-button">
-            {{ isLoading ? 'Signing in...' : 'Sign In' }}
+          <button
+            type="submit"
+            class="login-button"
+            [disabled]="loginForm.invalid || isLoading()"
+            [attr.aria-busy]="isLoading()">
+            {{ isLoading() ? 'Signing in…' : 'Sign In' }}
           </button>
         </form>
 
         <div class="debug-info" *ngIf="showDebugInfo">
           <p><strong>Debug Info:</strong></p>
-          <p>Current URL: {{ currentUrl }}</p>
-          <p>Return URL: {{ returnUrl || 'None' }}</p>
-          <p>Auth Status: {{ authStatus }}</p>
+          <p>Current URL: {{ currentUrl() }}</p>
+          <p>Return URL: {{ returnUrl() || 'None' }}</p>
+          <p>Auth Status: {{ authStatus() }}</p>
         </div>
       </div>
     </div>
   `,
   styles: [`
-    .login-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 20px;
-    }
-
-    .login-card {
-      background: white;
-      border-radius: 12px;
-      padding: 40px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-      width: 100%;
-      max-width: 400px;
-    }
-
-    .login-header {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .login-header h1 {
-      color: #333;
-      margin-bottom: 8px;
-      font-size: 1.5rem;
-    }
-
-    .login-header h3 {
-      color: #666;
-      margin: 0;
-      font-size: 1rem;
-      font-weight: normal;
-    }
-
-    .error-message {
-      background: #fee;
-      color: #c33;
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 20px;
-      border: 1px solid #fcc;
-    }
-
-    .success-message {
-      background: #efe;
-      color: #363;
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 20px;
-      border: 1px solid #cfc;
-    }
-
-    .login-form {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .form-field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .form-field label {
-      font-weight: 600;
-      color: #333;
-    }
-
-    .form-field input {
-      padding: 12px;
-      border: 2px solid #ddd;
-      border-radius: 6px;
-      font-size: 16px;
-      transition: border-color 0.3s;
-    }
-
-    .form-field input:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-
-    .form-field input.error {
-      border-color: #e53e3e;
-    }
-
-    .field-error {
-      color: #e53e3e;
-      font-size: 14px;
-    }
-
-    .login-button {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 6px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-
-    .login-button:hover:not(:disabled) {
-      transform: translateY(-1px);
-    }
-
-    .login-button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .debug-info {
-      margin-top: 20px;
-      padding: 12px;
-      background: #f5f5f5;
-      border-radius: 6px;
-      font-size: 12px;
-      color: #666;
-    }
-  `]
-})
-export class Login implements OnInit {
-  loginForm: FormGroup;
-  isLoading = false;
-  errorMessage = '';
-  successMessage = '';
-  currentUrl = '';
-  returnUrl: string | null = null;
-  authStatus = 'checking...';
-  showDebugInfo = false; // Set to true for debugging
-
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private route: ActivatedRoute
-  ) {
-    this.loginForm = this.fb.group({
-      username: ['', [Validators.required]],
-      password: ['', [Validators.required]]
-    });
+  .login-container {
+    display: grid;
+    place-items: center;
+    width: 100vw;
+    height: 100svh;                 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    overflow: hidden;               
   }
 
+  .login-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.2);
+    width: min(400px, 92vw);
+  }
+
+  .login-header { text-align: center; margin-bottom: 30px; }
+  .login-header h1 { color:#333; margin-bottom: 8px; font-size: 1.5rem; }
+  .login-header h3 { color:#666; margin:0; font-size: 1rem; font-weight: 400; }
+
+  .error-message { background:#fee; color:#c33; padding:12px; border-radius:6px; margin-bottom:20px; border:1px solid #fcc; }
+  .success-message { background:#efe; color:#363; padding:12px; border-radius:6px; margin-bottom:20px; border:1px solid #cfc; }
+
+  .login-form { display:flex; flex-direction:column; gap: 18px; }
+  .form-field { display:flex; flex-direction:column; gap:6px; }
+  .form-field label { font-weight:600; color:#333; }
+  .form-field input {
+    padding:12px; border:2px solid #ddd; border-radius:6px; font-size:16px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .form-field input:focus { outline:none; border-color:#667eea; box-shadow:0 0 0 3px rgba(102,126,234,.15); }
+  .form-field input.error { border-color:#e53e3e; }
+  .field-error { color:#e53e3e; font-size:13px; }
+
+  .forgot { margin-top:-6px; font-size:13px; color:#666; text-decoration:none; }
+  .forgot:hover { text-decoration: underline; }
+
+  .login-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff; border:none; padding:12px 24px; border-radius:6px;
+    font-size:16px; font-weight:600; cursor:pointer; transition: transform .12s;
+  }
+  .login-button:hover:not(:disabled) { transform: translateY(-1px); }
+  .login-button:disabled { opacity:.65; cursor:not-allowed; }
+
+  .debug-info { margin-top:20px; padding:12px; background:#f5f5f5; border-radius:6px; font-size:12px; color:#666; }
+`]
+
+})
+export class Login implements OnInit {
+  private fb = inject(NonNullableFormBuilder);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  // Reactive form (strongly typed)
+  readonly loginForm = this.fb.group({
+    username: ['', Validators.required],
+    password: ['', Validators.required],
+  });
+
+  // UI state as signals
+  readonly isLoading = signal(false);
+  readonly errorMessage = signal<string | null>(null);
+  readonly successMessage = signal<string | null>(null);
+  readonly currentUrl = signal('');
+  readonly returnUrl = signal<string | null>(null);
+  readonly authStatus = signal<'checking...' | 'authenticated' | 'not authenticated'>('checking...');
+  showDebugInfo = false; // toggle for debugging
+
   async ngOnInit(): Promise<void> {
-    // Wait for auth service initialization
-    await this.authService.waitForInitialization();
-
-    // Get return URL from query params
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
-
-    // Check if already logged in
-    if (this.authService.isLoggedIn()) {
-      console.log('User already logged in, redirecting to:', this.returnUrl);
-      this.router.navigate([this.returnUrl]);
-      return;
+    // If your AuthService needs async init
+    if (this.authService.waitForInitialization) {
+      await this.authService.waitForInitialization();
     }
 
-    this.authStatus = this.authService.isAuthenticated() ? 'authenticated' : 'not authenticated';
+    // Read returnUrl from ?returnUrl=...
+    this.returnUrl.set(this.route.snapshot.queryParamMap.get('returnUrl') ?? '/dashboard');
 
-    this.currentUrl = this.router.url;
+    // Already logged in?
+    if (this.authService.isLoggedIn?.() || this.authService.isAuthenticated?.()) {
+      this.authStatus.set('authenticated');
+      this.router.navigate([this.returnUrl()!]);
+      return;
+    } else {
+      this.authStatus.set('not authenticated');
+    }
 
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: NavigationEnd) => {
-      this.currentUrl = event.url;
-    });
+    // Track URL changes
+    this.currentUrl.set(this.router.url);
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed()
+      )
+      .subscribe(e => this.currentUrl.set(e.urlAfterRedirects));
 
-    // Subscribe to auth changes
-    this.authService.isAuthenticated$.subscribe(isAuth => {
-      this.authStatus = isAuth ? 'authenticated' : 'not authenticated';
-      if (isAuth) {
-        // User got authenticated, redirect
-        this.router.navigate([this.returnUrl]);
-      }
-    });
-
-    this.successMessage = '';
-    this.errorMessage = '';
+    // React to auth state changes
+    if (this.authService.isAuthenticated$) {
+      this.authService.isAuthenticated$
+        .pipe(takeUntilDestroyed())
+        .subscribe(isAuth => {
+          this.authStatus.set(isAuth ? 'authenticated' : 'not authenticated');
+          if (isAuth) this.router.navigate([this.returnUrl()!]);
+        });
+    }
   }
 
   onSubmit(): void {
-    if (this.loginForm.invalid) {
+    if (this.loginForm.invalid || this.isLoading()) {
       this.loginForm.markAllAsTouched();
       return;
     }
 
-    this.isLoading = true;
-    this.errorMessage = '';
-    this.successMessage = '';
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
 
-    const credentials = this.loginForm.value;
+    const credentials = this.loginForm.getRawValue();
 
-    this.authService.login(credentials).subscribe({
-      next: () => {
-        this.isLoading = false;
-        this.successMessage = 'Login successful! Redirecting...';
-        
-        // Navigate to return URL or dashboard
-        setTimeout(() => {
-          this.router.navigate([this.returnUrl]);
-        }, 500);
-      },
-      error: (error) => {
-        this.isLoading = false;
-        console.error('Login error:', error);
-        
-        if (error?.error?.message) {
-          this.errorMessage = error.error.message;
-        } else if (error?.message) {
-          this.errorMessage = error.message;
-        } else {
-          this.errorMessage = 'Login failed. Please check your credentials and try again.';
+    this.authService.login(credentials)
+      .pipe(finalize(() => this.isLoading.set(false)))
+      .subscribe({
+        next: () => {
+          this.successMessage.set('Login successful! Redirecting…');
+          setTimeout(() => this.router.navigate([this.returnUrl()!]), 500);
+        },
+        error: (err) => {
+          // Normalize common cases
+          const msg =
+            err?.status === 0
+              ? 'Cannot reach the server. Make sure the API is running and CORS allows this origin.'
+              : err?.error?.message || err?.message || 'Login failed. Please check your credentials and try again.';
+          this.errorMessage.set(msg);
+          console.error('Login error:', err);
         }
-      }
-    });
+      });
   }
 }
