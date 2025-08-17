@@ -55,7 +55,7 @@ template: `
       </div>
       <div class="footer">
         <div class="footer-text">
-          PARA SA BAYAN, MULA SA BAYAN
+          MULA SA BAYAN, PARA SA BAYAN
         </div>
         <img src="assets/images/pgc-logo.png" alt="Logo" class="footer-logo">
       </div>
@@ -126,7 +126,7 @@ styles: [`
     padding: 12px;
     border: 1px solid #ccc;
     border-radius: 6px;
-    font-size: 15px;
+    font-size: 14px;
     transition: border-color 0.3s;
   }
 
@@ -141,7 +141,7 @@ styles: [`
 
   .field-error {
     color: #e53e3e;
-    font-size: 13px;
+    font-size: 14px;
     text-align: left;
   }
 
@@ -151,7 +151,7 @@ styles: [`
     border: none;
     padding: 12px;
     border-radius: 6px;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.3s, transform 0.2s;

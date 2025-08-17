@@ -14,6 +14,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
+import { SidebarComponent } from '../../sidebar/sidebar.components';
 
 export interface InventoryItem {
   item_id: string;
@@ -52,129 +53,125 @@ const INVENTORY_DATA: InventoryItem[] = [
     MatFormFieldModule,
     MatSelectModule,
     MatCheckboxModule,
-    MatTooltipModule
+    MatTooltipModule,
+    SidebarComponent
   ],
   template: `
-  <div class="dashboard-container" *ngIf="isInitialized">
-    <nav class="sidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-title">PICTOIMS</div>
-        <div class="sidebar-user">
-          <span>{{ currentUser()?.email || currentUser()?.username }}</span>
-        </div>
-      </div>
-      <ul class="sidebar-menu">
-        <li *ngFor="let link of menuLinks">
-          <a [routerLink]="[link.path]" [class.active]="isActiveRoute(link.path)" class="menu-item">
-            <mat-icon>{{link.icon}}</mat-icon> {{link.label}}
-          </a>
-        </li>
-        <li>
-          <a (click)="logout()" class="menu-item" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Log out
-          </a>
-        </li>
-      </ul>
-    </nav>
+  <body>
+    <div class="dashboard-container" *ngIf="isInitialized">
+      <app-sidebar></app-sidebar>
 
-    <main class="main-content">
-      <header class="top-header">
-        <div class="header-left">
-          <h2>Dashboard</h2>
-        </div>
-        <div class="header-right">
-          <span class="welcome-text">Welcome, {{ getDisplayName() }}!</span>
-        </div>
-      </header>
+      <main class="main-content">
+        <header class="top-header">
+          <div class="header-left">
+            <h2>Dashboard</h2>
+          </div>
+          <div class="header-right">
+            <span class="welcome-text">Welcome, {{ getDisplayName() }}!</span>
+          </div>
+        </header>
 
-      <div class="content-area">
-        <div class="table-section">
-          <div class="table-controls">
-            <div class="controls-left">
-              <button mat-stroked-button class="export-btn">
-                Export
-              </button>
-              <button mat-stroked-button class="add-btn">
-                Add
-              </button>
-              <button mat-stroked-button class="add-btn">
-                Edit
-              </button>
-              <button mat-stroked-button class="add-btn">
-                Delete
-              </button>
+        <div class="content-area">
+          <div class="table-section">
+            <div class="table-controls">
+              <div class="controls-left">
+                <button mat-stroked-button class="export-btn">
+                  Export
+                </button>
+                <button mat-stroked-button class="add-btn">
+                  Add
+                </button>
+                <button mat-stroked-button class="add-btn">
+                  Edit
+                </button>
+                <button mat-stroked-button class="add-btn">
+                  Delete
+                </button>
+              </div>
+              <div class="controls-right">
+                <mat-form-field appearance="outline" class="search-field">
+                  <input matInput placeholder="Search.." (input)="onSearch($event)">
+                </mat-form-field>
+              </div>
             </div>
-            <div class="controls-right">
-              <mat-form-field appearance="outline" class="search-field">
-                <input matInput placeholder="Search.." (input)="onSearch($event)">
-              </mat-form-field>
+
+            <div class="table-container">
+              <table mat-table [dataSource]="dataSource" class="data-table">
+                <ng-container matColumnDef="item_name">
+                  <th mat-header-cell *matHeaderCellDef>Name</th>
+                  <td mat-cell *matCellDef="let element">{{element.item_name}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="description">
+                  <th mat-header-cell *matHeaderCellDef>Description</th>
+                  <td mat-cell *matCellDef="let element">{{element.description}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="category">
+                  <th mat-header-cell *matHeaderCellDef>Category</th>
+                  <td mat-cell *matCellDef="let element">{{element.category}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="quantity">
+                  <th mat-header-cell *matHeaderCellDef>Qty</th>
+                  <td mat-cell *matCellDef="let element">{{element.quantity}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="unit">
+                  <th mat-header-cell *matHeaderCellDef>Unit</th>
+                  <td mat-cell *matCellDef="let element">{{element.unit}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="location">
+                  <th mat-header-cell *matHeaderCellDef>Location</th>
+                  <td mat-cell *matCellDef="let element">{{element.location}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>Status</th>
+                  <td mat-cell *matCellDef="let element">
+                    <span class="status-badge" [class.available]="element.status==='Available'" [class.unavailable]="element.status!=='Available'">
+                      {{element.status}}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="date_added">
+                  <th mat-header-cell *matHeaderCellDef>Date Added</th>
+                  <td mat-cell *matCellDef="let element">{{element.date_added}}</td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;" [class.selected-row]="row.selected"></tr>
+              </table>
             </div>
           </div>
-
-          <div class="table-container">
-            <table mat-table [dataSource]="dataSource" class="data-table">
-              <ng-container matColumnDef="item_name">
-                <th mat-header-cell *matHeaderCellDef>Name</th>
-                <td mat-cell *matCellDef="let element">{{element.item_name}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="description">
-                <th mat-header-cell *matHeaderCellDef>Description</th>
-                <td mat-cell *matCellDef="let element">{{element.description}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="category">
-                <th mat-header-cell *matHeaderCellDef>Category</th>
-                <td mat-cell *matCellDef="let element">{{element.category}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="quantity">
-                <th mat-header-cell *matHeaderCellDef>Qty</th>
-                <td mat-cell *matCellDef="let element">{{element.quantity}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="unit">
-                <th mat-header-cell *matHeaderCellDef>Unit</th>
-                <td mat-cell *matCellDef="let element">{{element.unit}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="location">
-                <th mat-header-cell *matHeaderCellDef>Location</th>
-                <td mat-cell *matCellDef="let element">{{element.location}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef>Status</th>
-                <td mat-cell *matCellDef="let element">
-                  <span class="status-badge" [class.available]="element.status==='Available'" [class.unavailable]="element.status!=='Available'">
-                    {{element.status}}
-                  </span>
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="date_added">
-                <th mat-header-cell *matHeaderCellDef>Date Added</th>
-                <td mat-cell *matCellDef="let element">{{element.date_added}}</td>
-              </ng-container>
-
-              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-              <tr mat-row *matRowDef="let row; columns: displayedColumns;" [class.selected-row]="row.selected"></tr>
-            </table>
-          </div>
         </div>
-      </div>
-    </main>
-  </div>
+      </main>
+    </div>
+  </body>
 
   <!-- Loading state -->
   <div class="loading-container" *ngIf="!isInitialized">
     <div class="loading-spinner">
-      <mat-icon>refresh</mat-icon>
+      <mat-icon>. . . . .</mat-icon>
       <p>Loading dashboard...</p>
     </div>
   </div>
   `,
   styles: [`
+    @font-face {
+      font-family: 'Montserrat';
+      src: url('/assets/fonts/Montserrat.ttf') format('truetype');
+    }
+
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: 'Montserrat';
+    }
+
     .dashboard-container {
       display: flex;
       min-height: 100vh;
@@ -194,7 +191,7 @@ const INVENTORY_DATA: InventoryItem[] = [
     }
 
     .loading-spinner mat-icon {
-      font-size: 48px;
+      font-size: 14px;
       width: 48px;
       height: 48px;
       animation: spin 1s linear infinite;
@@ -203,65 +200,6 @@ const INVENTORY_DATA: InventoryItem[] = [
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
-    }
-
-    .sidebar { 
-      width: 220px; 
-      background: #1f2937; 
-      color: #f9fafb; 
-      position: fixed; 
-      height: 100vh; 
-      display: flex; 
-      flex-direction: column;
-      z-index: 1000;
-    }
-
-    .sidebar-header {
-      padding: 20px;
-      border-bottom: 1px solid #374151;
-    }
-
-    .sidebar-title { 
-      font-size: 1.75rem; 
-      font-weight: 700; 
-      text-align: center; 
-      margin-bottom: 16px; 
-    }
-
-    .sidebar-user {
-      text-align: center;
-      font-size: 0.875rem;
-      color: #d1d5db;
-    }
-
-    .sidebar-menu { 
-      list-style: none; 
-      padding: 0; 
-      flex-grow: 1; 
-      margin: 0; 
-    }
-
-    .menu-item { 
-      display: flex; 
-      align-items: center; 
-      padding: 12px 20px; 
-      color: #f9fafb; 
-      text-decoration: none; 
-      gap: 12px; 
-      border-radius: 6px; 
-      margin: 4px 12px;
-      transition: all 0.2s; 
-      cursor: pointer; 
-    }
-
-    .menu-item:hover { 
-      background: #374151; 
-      transform: translateX(4px);
-    }
-
-    .menu-item.active { 
-      background: #3b82f6; 
-      font-weight: 600; 
     }
 
     .main-content { 
@@ -398,12 +336,6 @@ const INVENTORY_DATA: InventoryItem[] = [
 
     /* Responsive design */
     @media (max-width: 768px) {
-      .sidebar {
-        width: 100%;
-        position: relative;
-        height: auto;
-      }
-
       .main-content {
         margin-left: 0;
       }
@@ -420,6 +352,7 @@ const INVENTORY_DATA: InventoryItem[] = [
     }
   `]
 })
+
 export class Dashboard implements OnInit, OnDestroy {
   private router = inject(Router);
   private authService = inject(AuthService);
@@ -432,15 +365,6 @@ export class Dashboard implements OnInit, OnDestroy {
   isInitialized = false;
 
   private subscriptions: Subscription = new Subscription();
-
-  menuLinks = [
-    {path:'/dashboard', label:'Dashboard', icon:'dashboard'},
-    {path:'/inventory', label:'Inventory', icon:'inventory'},
-    {path:'/requests', label:'Request', icon:'request_page'},
-    {path:'/requisitions', label:'Requisition', icon:'assignment'},
-    {path:'/transfers', label:'Transfer', icon:'compare_arrows'},
-    {path:'/repairs', label:'Repair Status', icon:'build'}
-  ];
 
   async ngOnInit() {
     try {

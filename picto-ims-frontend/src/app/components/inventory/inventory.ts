@@ -3,360 +3,211 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { User } from '../../models';
+import { Subscription } from 'rxjs';
+import { SidebarComponent } from '../../sidebar/sidebar.components';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, RouterOutlet],
+  imports: [CommonModule, RouterModule, RouterOutlet, SidebarComponent],
   template: `
-    <!-- Sidebar -->
-    <nav class="sidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-title">PICTO IMS</div>
-        <div class="sidebar-user">{{ currentUser()?.email || currentUser()?.username }}</div>
-      </div>
-      
-      <ul class="sidebar-menu">
-        <li>
-          <a [routerLink]="['/dashboard']" 
-             [class.active]="isActiveRoute('/dashboard')"
-             class="menu-item">
-            📊 Dashboard
-          </a>
-        </li>
-        <li>
-          <a [routerLink]="['/inventory']" 
-             [class.active]="isActiveRoute('/inventory')"
-             class="menu-item">
-            📦 Inventory
-          </a>
-        </li>
-        <li class="has-submenu" [class.open]="isSubmenuOpen()">
-          <a href="#" class="menu-toggle" (click)="toggleSubmenu($event)">📋 RF & RS</a>
-          <ul class="submenu">
-            <li>
-              <a [routerLink]="['/requisitions']" 
-                 [class.active]="isActiveRoute('/requisitions')"
-                 class="menu-item">
-                Requisition Forms
-              </a>
-            </li>
-            <li>
-              <a [routerLink]="['/requests']" 
-                 [class.active]="isActiveRoute('/requests')"
-                 class="menu-item">
-                Request Forms
-              </a>
-            </li>
-            <li>
-              <a [routerLink]="['/transfers']" 
-                 [class.active]="isActiveRoute('/transfers')"
-                 class="menu-item">
-                Transfers
-              </a>
-            </li>
-            <li>
-              <a [routerLink]="['/repairs']" 
-                 [class.active]="isActiveRoute('/repairs')"
-                 class="menu-item">
-                PC Repair Tracker
-              </a>
-            </li>
-          </ul>
-        </li>
-        <li *ngIf="hasAdminRole()">
-          <a [routerLink]="['/users']" 
-             [class.active]="isActiveRoute('/users')"
-             class="menu-item">
-            👥 User Management
-          </a>
-        </li>
-        <li>
-          <a href="#" (click)="logout()" class="menu-item">
-            🚪 Logout
-          </a>
-        </li>
-      </ul>
-    </nav>
+    <body>
+      <div class="div-container">
+        <div class="navbar"><app-sidebar></app-sidebar></div>
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <!-- Top Header -->
-      <header class="top-header">
-        <h1 class="page-title">{{ getPageTitle() }}</h1>
-        <div class="header-actions">
-          <div class="currency-selector">
-            <span>💱</span>
-            <span>Currency: PHP</span>
-          </div>
-          <div class="user-info">
-            <span>{{ currentUser()?.fullName }}</span>
-            <span class="user-role">({{ currentUser()?.role }})</span>
-          </div>
+        <div class="main-content">
+          <header class="top-header">
+            <div class="header-left">
+              <h2>Inventory</h2>
+            </div>
+            <div class="header-right">
+              <span class="welcome-text">Welcome, {{ getDisplayName() }}!</span>
+            </div>
+          </header>
         </div>
-      </header>
-
-      <!-- Content Area -->
-      <div class="content-area">
-        <router-outlet></router-outlet>
       </div>
-    </main>
-  `,
+    </body>
+      `,
   styles: [`
-    /* Sidebar */
-    .sidebar {
-      width: 220px;
-      height: 100vh;
-      background-color: #2c3e50;
-      color: #ecf0f1;
-      position: fixed;
-      top: 0;
-      left: 0;
-      overflow-y: auto;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.2);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      display: flex;
-      flex-direction: column;
-      z-index: 1000;
+    @font-face {
+      font-family: 'Montserrat';
+      src: url('/assets/fonts/Montserrat.ttf') format('truetype');
     }
 
-    .sidebar-header {
-      padding: 20px 15px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      text-align: center;
-    }
-
-    .sidebar-title {
-      font-size: 1.4rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-      letter-spacing: 1.5px;
-      user-select: none;
-    }
-
-    .sidebar-user {
-      font-size: 0.9rem;
-      font-weight: 500;
-      color: #bdc3c7;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* Sidebar Menu */
-    .sidebar-menu {
-      list-style: none;
+    body {
+      height: 100%;
+      margin: 0;
       padding: 0;
-      margin: 0;
-      flex-grow: 1;
+      font-family: 'Montserrat';
     }
 
-    .sidebar-menu li {
-      position: relative;
-    }
-
-    .sidebar-menu .menu-item {
-      display: block;
-      padding: 12px 20px;
-      color: #ecf0f1;
-      text-decoration: none;
-      font-size: 1rem;
-      cursor: pointer;
-      user-select: none;
-      transition: background-color 0.25s ease;
-      white-space: nowrap;
-    }
-
-    .sidebar-menu .menu-item:hover {
-      background-color: #34495e;
-      color: #ffffff;
-    }
-
-    .sidebar-menu .menu-item.active {
-      background-color: #1abc9c;
-      color: white;
-      font-weight: 600;
-    }
-
-    /* Submenu */
-    .has-submenu > .menu-toggle {
+    .div-container {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 20px;
-      cursor: pointer;
-      font-size: 1rem;
-      color: #ecf0f1;
-      border: none;
-      background: none;
-      width: 100%;
-      user-select: none;
-      transition: background-color 0.25s ease;
-    }
-
-    .has-submenu > .menu-toggle:hover {
-      background-color: #34495e;
-    }
-
-    .has-submenu.open > .menu-toggle {
-      background-color: #16a085;
-      font-weight: 600;
-    }
-
-    .submenu {
-      list-style: none;
-      padding-left: 10px;
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease;
-      background-color: #34495e;
-    }
-
-    .has-submenu.open > .submenu {
-      max-height: 500px; /* large enough to show all submenu items */
-    }
-
-    .submenu li {
-      border-left: 3px solid transparent;
-    }
-
-    .submenu li .menu-item {
-      padding: 10px 30px;
-      font-size: 0.95rem;
-      color: #ecf0f1;
-    }
-
-    .submenu li .menu-item:hover {
-      background-color: #3d566e;
-    }
-
-    .submenu li .menu-item.active {
-      background-color: #1abc9c;
-      font-weight: 600;
-      border-left: 3px solid #16a085;
-      color: white;
-    }
-
-    /* Main content */
-    .main-content {
-      margin-left: 220px;
-      padding: 20px 30px;
       min-height: 100vh;
-      background-color: #f5f7fa;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      flex-direction: row;
     }
 
-    /* Top header */
-    .top-header {
+    .loading-container {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 12px;
-      margin-bottom: 20px;
-      user-select: none;
+      min-height: 100vh;
+      background: #f3f4f6;
     }
 
-    .page-title {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: #34495e;
+    .loading-spinner {
+      text-align: center;
+      color: #666;
+    }
+
+    .loading-spinner mat-icon {
+      font-size: 14px;
+      width: 48px;
+      height: 48px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .main-content { 
+      margin-left: 220px; 
+      background: #f3f4f6; 
+      min-height: 100vh; 
+      display: flex; 
+      flex-direction: column; 
+      flex: 1;
+    }
+
+    .top-header { 
+      height: 60px; 
+      background: white; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      padding: 0 24px; 
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .header-left h2 {
       margin: 0;
+      color: #1f2937;
+      font-size: 1.5rem;
     }
 
-    .header-actions {
-      display: flex;
-      gap: 20px;
-      align-items: center;
-      font-size: 0.9rem;
-      color: #7f8c8d;
+    .welcome-text {
+      color: #6b7280;
+      font-size: 0.875rem;
     }
 
-    .currency-selector {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background-color: #ecf0f1;
-      padding: 5px 10px;
-      border-radius: 4px;
-      color: #34495e;
-      font-weight: 600;
-      user-select: none;
-    }
-
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 600;
-      color: #2c3e50;
-    }
-
-    .user-role {
-      font-style: italic;
-      color: #95a5a6;
-      font-weight: 400;
-    }
-
-    /* Content area */
     .content-area {
-      background: white;
-      padding: 20px;
-      border-radius: 6px;
-      box-shadow: 0 0 12px rgba(0,0,0,0.05);
-      min-height: 60vh;
+      flex: 1;
+      padding: 24px;
     }
 
-    /* Scrollbar for sidebar */
-    .sidebar::-webkit-scrollbar {
-      width: 6px;
-    }
-    .sidebar::-webkit-scrollbar-thumb {
-      background-color: rgba(255, 255, 255, 0.2);
-      border-radius: 3px;
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .div-container {
+        flex-direction: row;
+      }
+
+      .main-content {
+        margin-left: 0;
+        display: flex;
+      }
+
+      .table-controls {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+      }
+
+      .search-field {
+        width: 100%;
+      }
     }
   `]
 })
+
 export class Inventory {
   private router = inject(Router);
   private authService = inject(AuthService);
 
-  isSubmenuOpen = signal(false);
   currentUser = signal<User | null>(null);
+  isInitialized = false;
+  
+  private subscriptions: Subscription = new Subscription();
 
-  constructor() {
-    this.authService.currentUser$.subscribe(user => {
-      this.currentUser.set(user);
-    });
+  async ngOnInit() {
+    try {
+      // Wait for auth service to initialize
+      await this.authService.waitForInitialization();
+
+      // Check authentication
+      if (!this.authService.isLoggedIn()) {
+        console.log('User not logged in, redirecting to login');
+        this.router.navigate(['/login']);
+        return;
+      }
+
+      // Subscribe to current user changes
+      const userSub = this.authService.currentUser$.subscribe(user => {
+        this.currentUser.set(user);
+        console.log('Current user updated:', user);
+      });
+      this.subscriptions.add(userSub);
+
+      // Subscribe to auth state changes
+      const authSub = this.authService.isAuthenticated$.subscribe(isAuth => {
+        if (!isAuth) {
+          console.log('User authentication lost, redirecting to login');
+          this.router.navigate(['/login']);
+        }
+      });
+      this.subscriptions.add(authSub);
+
+      // Refresh auth state to ensure we have latest data
+      this.authService.refreshAuthState();
+
+      this.isInitialized = true;
+      console.log('Request initialized successfully');
+
+    } catch (error) {
+      console.error('Error initializing request:', error);
+      this.router.navigate(['/login']);
+    }
   }
 
-  toggleSubmenu(event: Event) {
-    event.preventDefault();
-    this.isSubmenuOpen.set(!this.isSubmenuOpen());
+  ngOnDestroy() {
+    this.subscriptions.unsubscribe();
+  }
+
+  getDisplayName(): string {
+    const user = this.currentUser();
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return user?.username || 'User';
+  }
+
+  getInitials(): string {
+    const user = this.currentUser();
+    if (user?.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return user?.username?.charAt(0).toUpperCase() || 'A';
   }
 
   isActiveRoute(route: string): boolean {
     return this.router.url.startsWith(route);
   }
 
-  hasAdminRole(): boolean {
-    return this.currentUser()?.role === 'admin';
-  }
-
-  logout() {
+  logout(): void {
+    console.log('Logout initiated from request');
     this.authService.logout();
-    this.router.navigate(['/login']);
-  }
-
-  getPageTitle(): string {
-    const url = this.router.url;
-    if (url.startsWith('/dashboard')) return 'Dashboard';
-    if (url.startsWith('/inventory')) return 'Inventory';
-    if (url.startsWith('/requisitions')) return 'Requisition Forms';
-    if (url.startsWith('/requests')) return 'Request Forms';
-    if (url.startsWith('/transfers')) return 'Transfers';
-    if (url.startsWith('/repairs')) return 'PC Repair Tracker';
-    if (url.startsWith('/users')) return 'User Management';
-    return '';
+    // Navigation is handled by the auth service
   }
 }

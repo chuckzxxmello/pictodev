@@ -1,0 +1,30 @@
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-title">PICTOiMS</div>
+    <div class="sidebar-user">
+      <span>{{ currentUser()?.email || currentUser()?.username }}</span>
+    </div>
+  </div>
+
+  <div class="sidebar-menu">
+    <li *ngFor="let link of menuLinks">
+      <a [routerLink]="[link.path]" [class.active]="isActiveRoute(link.path)" class="menu-item">
+        <ng-container *ngIf="link.icon?.includes('assets/'); else matIcon">
+          <img [src]="link.icon" class="menu-img" alt="{{link.label}}" />
+        </ng-container>
+        <ng-template #matIcon>
+          <mat-icon>{{ link.icon }}</mat-icon>
+        </ng-template>
+
+        {{ link.label }}
+      </a>
+    </li>
+  </div>
+
+  <div class="sidebar-footer">
+      <a (click)="logout()" class="menu-item" style="cursor:pointer;">
+        <img src="assets/icons/user.png" alt="Logout" class="menu-img" />
+        Log out
+      </a>
+  </div>
+</nav>
