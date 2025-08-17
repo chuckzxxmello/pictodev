@@ -7,24 +7,26 @@
   </div>
 
   <div class="sidebar-menu">
-    <li *ngFor="let link of menuLinks">
-      <a [routerLink]="[link.path]" [class.active]="isActiveRoute(link.path)" class="menu-item">
-        <ng-container *ngIf="link.icon?.includes('assets/'); else matIcon">
-          <img [src]="link.icon" class="menu-img" alt="{{link.label}}" />
-        </ng-container>
-        <ng-template #matIcon>
-          <mat-icon>{{ link.icon }}</mat-icon>
-        </ng-template>
+    <ul>
+      <li *ngFor="let link of menuLinks">
+        <a [routerLink]="[link.path]" [class.active]="isActiveRoute(link.path)" class="menu-item">
+          <ng-container *ngIf="link.icon?.includes('assets/'); else matIcon">
+            <img [src]="link.icon" class="menu-img" alt="{{link.label}}" />
+          </ng-container>
+          <ng-template #matIcon>
+            <mat-icon>{{ link.icon }}</mat-icon>
+          </ng-template>
 
-        {{ link.label }}
-      </a>
-    </li>
+          <span>{{ link.label }}</span>  <!-- ✅ wrap text -->
+        </a>
+      </li>
+    </ul>
   </div>
 
   <div class="sidebar-footer">
-      <a (click)="logout()" class="menu-item" style="cursor:pointer;">
-        <img src="assets/icons/user.png" alt="Logout" class="menu-img" />
-        Log out
-      </a>
+    <a (click)="logout()" class="menu-item" style="cursor:pointer;">
+      <img src="assets/icons/user.png" alt="Logout" class="menu-img" />
+      <span>Log out</span> <!-- ✅ wrap text -->
+    </a>
   </div>
 </nav>

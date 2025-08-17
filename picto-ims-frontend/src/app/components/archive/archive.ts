@@ -16,8 +16,30 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { SidebarComponent } from '../../sidebar/sidebar.components';
 
+export interface InventoryItem {
+  item_id: string;
+  item_name: string;
+  description: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  location: string;
+  status: string;
+  date_added: string;
+  selected?: boolean;
+}
+
+const INVENTORY_DATA: InventoryItem[] = [
+  {item_id: '101', item_name: 'Ergonomic Office Chair', description: 'Comfortable office chair with adjustable height and lumbar support', category: 'Office Furniture', quantity: 15, unit: 'pcs', location: 'Main Office', status: 'Available', date_added: '2025-08-12'},
+  {item_id: '11', item_name: 'Ergonomic Office Chair', description: 'Comfortable office chair', category: 'Office Furniture', quantity: 15, unit: 'pcs', location: 'Main Office', status: 'Available', date_added: '2025-08-12'},
+  {item_id: '4', item_name: 'Office Desk', description: 'Wooden office desk', category: 'Office Furniture', quantity: 10, unit: 'pcs', location: 'Main Office', status: 'Available', date_added: '2025-08-13'},
+  {item_id: '5', item_name: 'Projector', description: 'HD projector for meetings', category: 'IT Equipment', quantity: 5, unit: 'pcs', location: 'Conference Room', status: 'Available', date_added: '2025-08-13'},
+  {item_id: '6', item_name: 'Wireless Mouse', description: 'Ergonomic wireless mouse', category: 'IT Equipment', quantity: 25, unit: 'pcs', location: 'IT Office', status: 'Available', date_added: '2025-08-12'},
+];
+
 @Component({
-  selector: 'app-requests',
+  selector: 'app-archive',
+  standalone: true,
   imports: [
     CommonModule,
     RouterModule,
@@ -34,7 +56,6 @@ import { SidebarComponent } from '../../sidebar/sidebar.components';
     MatTooltipModule,
     SidebarComponent
   ],
-
   template: `
     <div class="layout">
       <app-sidebar
@@ -46,7 +67,7 @@ import { SidebarComponent } from '../../sidebar/sidebar.components';
       <div class="content">
         <header class="top-header">
           <div class="header-left">
-            <h2>Requisition Form</h2>
+            <h2>Archive</h2>
           </div>
           <div class="header-right">
             <img src="assets/images/header-right.png" alt="pgc logo" class="headerr-img">
@@ -101,15 +122,106 @@ import { SidebarComponent } from '../../sidebar/sidebar.components';
       padding: 24px;
     }
 
+    .table-section { 
+      background: white; 
+      border-radius: 12px; 
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    }
+
+    .table-controls { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid #f3f4f6;
+      background: #fafbfc;
+    }
+
+    .controls-left {
+      display: flex;
+      gap: 8px;
+    }
+
+    .controls-left button {
+      font-size: 0.875rem;
+      padding: 8px 16px;
+    }
+
+    .export-btn {
+      color: #059669;
+      border-color: #059669;
+    }
+
+    .add-btn {
+      color: #3b82f6;
+      border-color: #3b82f6;
+    }
+
+    .search-field {
+      width: 300px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    .data-table { 
+      width: 100%; 
+      border-spacing: 0; 
+      font-size: 0.875rem; 
+    }
+
+    .data-table th { 
+      background: #f9fafb; 
+      padding: 16px 12px; 
+      font-weight: 600;
+      text-align: left;
+      border-bottom: 2px solid #e5e7eb;
+      color: #374151;
+    }
+
+    .data-table td { 
+      padding: 12px; 
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .status-badge { 
+      padding: 4px 12px; 
+      border-radius: 16px; 
+      font-size: 0.75rem; 
+      font-weight: 600; 
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-badge.available { 
+      background: #d1fae5; 
+      color: #065f46; 
+    }
+
+    .status-badge.unavailable { 
+      background: #fee2e2; 
+      color: #991b1b; 
+    }
+
+    .selected-row { 
+      background-color: #eff6ff !important; 
+    }
+
+    .data-table tr:hover {
+      background-color: #f9fafb;
+    }
+
+    .selected-row:hover {
+      background-color: #dbeafe !important;
+    }
+
     /* Responsive design */
     @media (max-width: 768px) {
-      .div-container {
-        flex-direction: row;
-      }
-
       .main-content {
         margin-left: 0;
-        display: flex;
       }
 
       .table-controls {
@@ -125,7 +237,7 @@ import { SidebarComponent } from '../../sidebar/sidebar.components';
   `]
 })
 
-export class Requests {
+export class Archive implements OnInit, OnDestroy {
   private router = inject(Router);
   private authService = inject(AuthService);
 
@@ -136,7 +248,12 @@ export class Requests {
   }
 
   currentUser = signal<User | null>(null);
+  searchTerm = signal('');
+  displayedColumns: string[] = ['select','item_id','item_name','description','category','quantity','unit','location','status','date_added'];
+  dataSource: InventoryItem[] = [...INVENTORY_DATA];
+  originalDataSource: InventoryItem[] = [...INVENTORY_DATA];
   isInitialized = false;
+
   private subscriptions: Subscription = new Subscription();
 
   async ngOnInit() {
@@ -171,10 +288,10 @@ export class Requests {
       this.authService.refreshAuthState();
 
       this.isInitialized = true;
-      console.log('Request initialized successfully');
+      console.log('Archive initialized successfully');
 
     } catch (error) {
-      console.error('Error initializing request:', error);
+      console.error('Error initializing archive:', error);
       this.router.navigate(['/login']);
     }
   }
@@ -204,8 +321,45 @@ export class Requests {
   }
 
   logout(): void {
-    console.log('Logout initiated from request');
+    console.log('Logout initiated from archive');
     this.authService.logout();
     // Navigation is handled by the auth service
+  }
+
+  onSearch(event: any): void {
+    const value = event.target.value.toLowerCase().trim();
+    this.searchTerm.set(value);
+    
+    if (!value) {
+      this.dataSource = [...this.originalDataSource];
+      return;
+    }
+
+    this.dataSource = this.originalDataSource.filter(item =>
+      item.item_name.toLowerCase().includes(value) ||
+      item.description.toLowerCase().includes(value) ||
+      item.category.toLowerCase().includes(value) ||
+      item.location.toLowerCase().includes(value) ||
+      item.status.toLowerCase().includes(value) ||
+      item.item_id.toLowerCase().includes(value)
+    );
+  }
+
+  isAllSelected(): boolean {
+    return this.dataSource.length > 0 && this.dataSource.every(row => row.selected);
+  }
+
+  isIndeterminate(): boolean {
+    const selectedCount = this.dataSource.filter(row => row.selected).length;
+    return selectedCount > 0 && selectedCount < this.dataSource.length;
+  }
+
+  toggleAllSelection(): void {
+    const allSelected = this.isAllSelected();
+    this.dataSource.forEach(row => row.selected = !allSelected);
+  }
+
+  getSelectedCount(): number {
+    return this.dataSource.filter(row => row.selected).length;
   }
 }

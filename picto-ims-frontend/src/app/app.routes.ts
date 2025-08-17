@@ -40,5 +40,10 @@ export const routes: Routes = [
     path: 'repairs',
     loadComponent: () =>
       import('./components/repairs/repairs').then(m => m.Repairs)
+  },
+  {
+    path: 'archive',
+    loadComponent: () =>
+      import('./components/archive/archive').then(m => m.Archive)
   }
 ];
