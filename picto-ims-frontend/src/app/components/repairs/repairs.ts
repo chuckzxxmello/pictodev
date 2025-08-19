@@ -11,74 +11,42 @@ import { SidebarComponent } from '../../sidebar/sidebar.components';
   standalone: true,
   imports: [CommonModule, RouterModule, RouterOutlet, SidebarComponent],
   template: `
-    <body>
-      <div class="div-container">
-        <div class="navbar"><app-sidebar></app-sidebar></div>
+    <div class="layout">
+      <app-sidebar
+        class="sidebar"
+        [class.collapsed]="isCollapsed"
+        (toggle)="isCollapsed = !isCollapsed">
+      </app-sidebar>
 
-        <div class="main-content">
-          <header class="top-header">
-            <div class="header-left">
-              <h2>Transfer Out</h2>
-            </div>
-            <div class="header-right">
-              <span class="welcome-text">Welcome, {{ getDisplayName() }}!</span>
-            </div>
-          </header>
-        </div>
+      <div class="content">
+        <header class="top-header">
+          <div class="header-left">
+            <h2>Transfer Out</h2>
+          </div>
+          <div class="header-right">
+            <img src="assets/images/header-right.png" alt="pgc logo" class="headerr-img">
+          </div>
+        </header>
       </div>
-    </body>
-      `,
+    </div>
+  `,
   styles: [`
     @font-face {
       font-family: 'Montserrat';
       src: url('/assets/fonts/Montserrat.ttf') format('truetype');
     }
 
-    body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      font-family: 'Montserrat';
-    }
-
-    .div-container {
+    .layout {
       display: flex;
-      min-height: 100vh;
-      flex-direction: row;
+      height: 100vh;
+      transition: all 0.3s ease;
     }
 
-    .loading-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: #f3f4f6;
-    }
-
-    .loading-spinner {
-      text-align: center;
-      color: #666;
-    }
-
-    .loading-spinner mat-icon {
-      font-size: 14px;
-      width: 48px;
-      height: 48px;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .main-content { 
-      margin-left: 220px; 
-      background: #f3f4f6; 
-      min-height: 100vh; 
-      display: flex; 
-      flex-direction: column; 
-      flex: 1;
+    .content {
+      flex: 1;                    /* always take remaining space */
+      padding: 10px;
+      transition: all 0.3s ease;  /* smooth resize */
+      width: 100%;
     }
 
     .top-header { 
@@ -98,9 +66,9 @@ import { SidebarComponent } from '../../sidebar/sidebar.components';
       font-size: 1.5rem;
     }
 
-    .welcome-text {
-      color: #6b7280;
-      font-size: 0.875rem;
+    .headerr-img {
+      width: auto;
+      height: 50px;
     }
 
     .content-area {
@@ -135,6 +103,12 @@ import { SidebarComponent } from '../../sidebar/sidebar.components';
 export class Repairs {
   private router = inject(Router);
   private authService = inject(AuthService);
+
+  isCollapsed = false;
+
+  toggleSidebar() {
+    this.isCollapsed = !this.isCollapsed;
+  }
 
   currentUser = signal<User | null>(null);
   isInitialized = false;

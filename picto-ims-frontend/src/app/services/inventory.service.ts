@@ -1,44 +1,85 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { InventoryItem, CreateInventoryRequest, UpdateInventoryRequest } from '../models';
+import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
+import { Observable, BehaviorSubject, throwError } from 'rxjs';
+import { ApiResponse,CreateInventoryRequest, UpdateInventoryRequest, PaginatedResponse } from '../models/index';
+import { environment } from '../../environments/environment';
+import { catchError, map, tap } from 'rxjs/operators';
+
+export interface PictoInventory {
+  itemId: number;
+  itemName: string;
+  serialNumber: string;
+  description: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  location: string;
+  status: string;
+  dateAdded: string;
+  selected?: boolean;
+}
+
+export interface InventoryFilters {
+  search?: string;
+  category?: string;
+  status?: string;
+  location?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface CreatePictoInventoryRequest {
+  item_name: string;
+  description: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  location: string;
+  status: string;
+  serial_number?: string;
+}
+
+export interface UpdatePictoInventoryRequest extends CreatePictoInventoryRequest {
+  item_id: number;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class InventoryService {
-  private readonly API_BASE_URL = 'https://localhost:5001/api';
+  private readonly API_BASE_URL = 'http://localhost:5265/api';
+  
 
   constructor(private http: HttpClient) {}
 
-  getAllInventory(): Observable<InventoryItem[]> {
-    return this.http.get<InventoryItem[]>(`${this.API_BASE_URL}/inventory`);
+  getAllInventory(): Observable<PictoInventory[]> {
+    return this.http.get<PictoInventory[]>(`${this.API_BASE_URL}/inventory`);
   }
 
-  getInventoryById(id: number): Observable<InventoryItem> {
-    return this.http.get<InventoryItem>(`${this.API_BASE_URL}/inventory/${id}`);
+  getInventoryById(id: number): Observable<PictoInventory> {
+    return this.http.get<PictoInventory>(`${this.API_BASE_URL}/inventory/${id}`);
   }
 
-  createInventory(item: CreateInventoryRequest): Observable<InventoryItem> {
-    return this.http.post<InventoryItem>(`${this.API_BASE_URL}/inventory`, item);
+  createInventory(item: CreateInventoryRequest): Observable<PictoInventory> {
+    return this.http.post<PictoInventory>(`${this.API_BASE_URL}/inventory`, item);
   }
 
-  updateInventory(id: number, item: UpdateInventoryRequest): Observable<InventoryItem> {
-    return this.http.put<InventoryItem>(`${this.API_BASE_URL}/inventory/${id}`, item);
+  updateInventory(id: number, item: UpdateInventoryRequest): Observable<PictoInventory> {
+    return this.http.put<PictoInventory>(`${this.API_BASE_URL}/inventory/${id}`, item);
   }
 
   deleteInventory(id: number): Observable<any> {
     return this.http.delete(`${this.API_BASE_URL}/inventory/${id}`);
   }
 
-  searchInventory(searchTerm: string): Observable<InventoryItem[]> {
+  searchInventory(searchTerm: string): Observable<PictoInventory[]> {
     const params = new HttpParams().set('term', searchTerm);
-    return this.http.get<InventoryItem[]>(`${this.API_BASE_URL}/inventory/search`, { params });
+    return this.http.get<PictoInventory[]>(`${this.API_BASE_URL}/inventory/search`, { params });
   }
 
-  getLowStockItems(threshold: number = 5): Observable<InventoryItem[]> {
+  getLowStockItems(threshold: number = 5): Observable<PictoInventory[]> {
     const params = new HttpParams().set('threshold', threshold.toString());
-    return this.http.get<InventoryItem[]>(`${this.API_BASE_URL}/inventory/low-stock`, { params });
+    return this.http.get<PictoInventory[]>(`${this.API_BASE_URL}/inventory/low-stock`, { params });
   }
 
   exportToExcel(): Observable<Blob> {

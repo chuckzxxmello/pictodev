@@ -10,7 +10,7 @@
   },
   "include": [
     "src/**/*.ts"
-, "src/app/components/dashboard/dashboard.componentts"  ],
+, "src/app/components/inventory/dashboard.componentts"  ],
   "exclude": [
     "src/**/*.spec.ts"
   ]

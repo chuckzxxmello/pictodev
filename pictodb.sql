@@ -5,8 +5,6 @@
 -- Dumped from database version 17.2
 -- Dumped by pg_dump version 17.2
 
--- Started on 2025-08-13 23:38:46
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -20,7 +18,6 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 2 (class 3079 OID 26230)
 -- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -28,8 +25,6 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 
 --
--- TOC entry 4939 (class 0 OID 0)
--- Dependencies: 2
 -- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: 
 --
 
@@ -41,49 +36,6 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- TOC entry 218 (class 1259 OID 26267)
--- Name: picto_archive; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.picto_archive (
-    history_id integer NOT NULL,
-    item_id integer,
-    audit_year integer NOT NULL,
-    quantity integer NOT NULL,
-    remarks text,
-    date_recorded date DEFAULT CURRENT_DATE
-);
-
-
-ALTER TABLE public.picto_archive OWNER TO postgres;
-
---
--- TOC entry 219 (class 1259 OID 26273)
--- Name: inventory_tracking_history_history_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.inventory_tracking_history_history_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.inventory_tracking_history_history_id_seq OWNER TO postgres;
-
---
--- TOC entry 4940 (class 0 OID 0)
--- Dependencies: 219
--- Name: inventory_tracking_history_history_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.inventory_tracking_history_history_id_seq OWNED BY public.picto_archive.history_id;
-
-
---
--- TOC entry 220 (class 1259 OID 26274)
 -- Name: pc_repair_tracker; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -109,7 +61,6 @@ CREATE TABLE public.pc_repair_tracker (
 ALTER TABLE public.pc_repair_tracker OWNER TO postgres;
 
 --
--- TOC entry 221 (class 1259 OID 26280)
 -- Name: pc_repair_tracker_repair_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -125,8 +76,6 @@ CREATE SEQUENCE public.pc_repair_tracker_repair_id_seq
 ALTER SEQUENCE public.pc_repair_tracker_repair_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4941 (class 0 OID 0)
--- Dependencies: 221
 -- Name: pc_repair_tracker_repair_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -134,7 +83,53 @@ ALTER SEQUENCE public.pc_repair_tracker_repair_id_seq OWNED BY public.pc_repair_
 
 
 --
--- TOC entry 222 (class 1259 OID 26281)
+-- Name: picto_archive; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.picto_archive (
+    archive_id integer NOT NULL,
+    item_id integer NOT NULL,
+    item_name character varying(255) NOT NULL,
+    description text,
+    category character varying(100),
+    quantity integer,
+    unit character varying(50),
+    location character varying(100),
+    status character varying(50),
+    date_added timestamp without time zone,
+    serial_number character varying(100),
+    archived_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    archived_reason text,
+    archived_by character varying(100),
+    original_item_id integer
+);
+
+
+ALTER TABLE public.picto_archive OWNER TO postgres;
+
+--
+-- Name: picto_archive_archive_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.picto_archive_archive_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.picto_archive_archive_id_seq OWNER TO postgres;
+
+--
+-- Name: picto_archive_archive_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.picto_archive_archive_id_seq OWNED BY public.picto_archive.archive_id;
+
+
+--
 -- Name: picto_inventory; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -147,14 +142,14 @@ CREATE TABLE public.picto_inventory (
     unit character varying(20),
     location character varying(100),
     status character varying(20) DEFAULT 'Available'::character varying,
-    date_added date DEFAULT CURRENT_DATE
+    date_added date DEFAULT CURRENT_DATE,
+    serial_number character varying(100)
 );
 
 
 ALTER TABLE public.picto_inventory OWNER TO postgres;
 
 --
--- TOC entry 223 (class 1259 OID 26289)
 -- Name: picto_inventory_item_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -170,8 +165,6 @@ CREATE SEQUENCE public.picto_inventory_item_id_seq
 ALTER SEQUENCE public.picto_inventory_item_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4942 (class 0 OID 0)
--- Dependencies: 223
 -- Name: picto_inventory_item_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -179,7 +172,6 @@ ALTER SEQUENCE public.picto_inventory_item_id_seq OWNED BY public.picto_inventor
 
 
 --
--- TOC entry 236 (class 1259 OID 26399)
 -- Name: request_archive; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -209,7 +201,6 @@ CREATE TABLE public.request_archive (
 ALTER TABLE public.request_archive OWNER TO postgres;
 
 --
--- TOC entry 224 (class 1259 OID 26290)
 -- Name: request_forms; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -238,7 +229,6 @@ CREATE TABLE public.request_forms (
 ALTER TABLE public.request_forms OWNER TO postgres;
 
 --
--- TOC entry 235 (class 1259 OID 26398)
 -- Name: request_forms_archive_req_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -254,8 +244,6 @@ CREATE SEQUENCE public.request_forms_archive_req_id_seq
 ALTER SEQUENCE public.request_forms_archive_req_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4943 (class 0 OID 0)
--- Dependencies: 235
 -- Name: request_forms_archive_req_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -263,7 +251,6 @@ ALTER SEQUENCE public.request_forms_archive_req_id_seq OWNED BY public.request_a
 
 
 --
--- TOC entry 225 (class 1259 OID 26296)
 -- Name: request_forms_req_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -279,8 +266,6 @@ CREATE SEQUENCE public.request_forms_req_id_seq
 ALTER SEQUENCE public.request_forms_req_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4944 (class 0 OID 0)
--- Dependencies: 225
 -- Name: request_forms_req_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -288,7 +273,6 @@ ALTER SEQUENCE public.request_forms_req_id_seq OWNED BY public.request_forms.req
 
 
 --
--- TOC entry 234 (class 1259 OID 26373)
 -- Name: requisition_archive; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -311,14 +295,16 @@ CREATE TABLE public.requisition_archive (
     received_by_name character varying(100),
     received_by_position character varying(100),
     received_by_date timestamp without time zone,
-    is_archived boolean
+    is_archived boolean,
+    archived_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    archived_reason text,
+    archived_by character varying(100)
 );
 
 
 ALTER TABLE public.requisition_archive OWNER TO postgres;
 
 --
--- TOC entry 226 (class 1259 OID 26297)
 -- Name: requisition_forms; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -348,7 +334,6 @@ CREATE TABLE public.requisition_forms (
 ALTER TABLE public.requisition_forms OWNER TO postgres;
 
 --
--- TOC entry 227 (class 1259 OID 26304)
 -- Name: requisition_forms_rf_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -364,8 +349,6 @@ CREATE SEQUENCE public.requisition_forms_rf_id_seq
 ALTER SEQUENCE public.requisition_forms_rf_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4945 (class 0 OID 0)
--- Dependencies: 227
 -- Name: requisition_forms_rf_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -373,7 +356,6 @@ ALTER SEQUENCE public.requisition_forms_rf_id_seq OWNED BY public.requisition_fo
 
 
 --
--- TOC entry 228 (class 1259 OID 26305)
 -- Name: transfer_in; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -392,7 +374,6 @@ CREATE TABLE public.transfer_in (
 ALTER TABLE public.transfer_in OWNER TO postgres;
 
 --
--- TOC entry 229 (class 1259 OID 26311)
 -- Name: transfer_in_transfer_in_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -408,8 +389,6 @@ CREATE SEQUENCE public.transfer_in_transfer_in_id_seq
 ALTER SEQUENCE public.transfer_in_transfer_in_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4946 (class 0 OID 0)
--- Dependencies: 229
 -- Name: transfer_in_transfer_in_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -417,7 +396,6 @@ ALTER SEQUENCE public.transfer_in_transfer_in_id_seq OWNED BY public.transfer_in
 
 
 --
--- TOC entry 230 (class 1259 OID 26312)
 -- Name: transfer_out; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -436,7 +414,6 @@ CREATE TABLE public.transfer_out (
 ALTER TABLE public.transfer_out OWNER TO postgres;
 
 --
--- TOC entry 231 (class 1259 OID 26318)
 -- Name: transfer_out_transfer_out_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -452,8 +429,6 @@ CREATE SEQUENCE public.transfer_out_transfer_out_id_seq
 ALTER SEQUENCE public.transfer_out_transfer_out_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4947 (class 0 OID 0)
--- Dependencies: 231
 -- Name: transfer_out_transfer_out_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -461,7 +436,6 @@ ALTER SEQUENCE public.transfer_out_transfer_out_id_seq OWNED BY public.transfer_
 
 
 --
--- TOC entry 232 (class 1259 OID 26319)
 -- Name: users; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -481,7 +455,6 @@ CREATE TABLE public.users (
 ALTER TABLE public.users OWNER TO postgres;
 
 --
--- TOC entry 233 (class 1259 OID 26326)
 -- Name: users_user_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -497,8 +470,6 @@ CREATE SEQUENCE public.users_user_id_seq
 ALTER SEQUENCE public.users_user_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4948 (class 0 OID 0)
--- Dependencies: 233
 -- Name: users_user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -506,7 +477,6 @@ ALTER SEQUENCE public.users_user_id_seq OWNED BY public.users.user_id;
 
 
 --
--- TOC entry 4724 (class 2604 OID 26328)
 -- Name: pc_repair_tracker repair_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -514,15 +484,13 @@ ALTER TABLE ONLY public.pc_repair_tracker ALTER COLUMN repair_id SET DEFAULT nex
 
 
 --
--- TOC entry 4722 (class 2604 OID 26327)
--- Name: picto_archive history_id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: picto_archive archive_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.picto_archive ALTER COLUMN history_id SET DEFAULT nextval('public.inventory_tracking_history_history_id_seq'::regclass);
+ALTER TABLE ONLY public.picto_archive ALTER COLUMN archive_id SET DEFAULT nextval('public.picto_archive_archive_id_seq'::regclass);
 
 
 --
--- TOC entry 4725 (class 2604 OID 26329)
 -- Name: picto_inventory item_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -530,7 +498,6 @@ ALTER TABLE ONLY public.picto_inventory ALTER COLUMN item_id SET DEFAULT nextval
 
 
 --
--- TOC entry 4740 (class 2604 OID 26402)
 -- Name: request_archive req_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -538,7 +505,6 @@ ALTER TABLE ONLY public.request_archive ALTER COLUMN req_id SET DEFAULT nextval(
 
 
 --
--- TOC entry 4729 (class 2604 OID 26330)
 -- Name: request_forms req_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -546,7 +512,6 @@ ALTER TABLE ONLY public.request_forms ALTER COLUMN req_id SET DEFAULT nextval('p
 
 
 --
--- TOC entry 4731 (class 2604 OID 26331)
 -- Name: requisition_forms rf_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -554,7 +519,6 @@ ALTER TABLE ONLY public.requisition_forms ALTER COLUMN rf_id SET DEFAULT nextval
 
 
 --
--- TOC entry 4734 (class 2604 OID 26332)
 -- Name: transfer_in transfer_in_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -562,7 +526,6 @@ ALTER TABLE ONLY public.transfer_in ALTER COLUMN transfer_in_id SET DEFAULT next
 
 
 --
--- TOC entry 4736 (class 2604 OID 26333)
 -- Name: transfer_out transfer_out_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -570,7 +533,6 @@ ALTER TABLE ONLY public.transfer_out ALTER COLUMN transfer_out_id SET DEFAULT ne
 
 
 --
--- TOC entry 4738 (class 2604 OID 26334)
 -- Name: users user_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -578,8 +540,6 @@ ALTER TABLE ONLY public.users ALTER COLUMN user_id SET DEFAULT nextval('public.u
 
 
 --
--- TOC entry 4917 (class 0 OID 26274)
--- Dependencies: 220
 -- Data for Name: pc_repair_tracker; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -589,49 +549,38 @@ COPY public.pc_repair_tracker (repair_id, request_form_id, pc_serial_no, device_
 
 
 --
--- TOC entry 4915 (class 0 OID 26267)
--- Dependencies: 218
 -- Data for Name: picto_archive; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.picto_archive (history_id, item_id, audit_year, quantity, remarks, date_recorded) FROM stdin;
-2	2	2024	5	For staff use	2025-08-11
-1	101	2025	15	Initial stock count	2025-08-12
-5	11	2025	15	Initial stock count	2025-08-12
-6	4	2025	10	Initial inventory count	2025-08-13
-7	7	2025	25	Initial stock	2025-08-12
-8	8	2025	25	Initial stock added	2025-08-11
+COPY public.picto_archive (archive_id, item_id, item_name, description, category, quantity, unit, location, status, date_added, serial_number, archived_at, archived_reason, archived_by, original_item_id) FROM stdin;
+1	16	Laptop	LENOVO THINKPAD T14	Electronics	10	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-18 14:04:09.045104	COMPLETED	TINTIN	16
 \.
 
 
 --
--- TOC entry 4919 (class 0 OID 26281)
--- Dependencies: 222
 -- Data for Name: picto_inventory; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.picto_inventory (item_id, item_name, description, category, quantity, unit, location, status, date_added) FROM stdin;
-101	Ergonomic Office Chair	Comfortable office chair with adjustable height and lumbar support	Office Furniture	15	pcs	Main Office	Available	2025-08-12
-11	Ergonomic Office Chair	Comfortable office chair	Office Furniture	15	pcs	Main Office	Available	2025-08-12
-4	Office Desk	Wooden office desk	Office Furniture	10	pcs	Main Office	Available	2025-08-13
-5	Projector	HD projector for meetings	IT Equipment	5	pcs	Conference Room	Available	2025-08-13
-6	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-12
-7	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-12
-8	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-11
-9	Laptop	\N	Electronics	5	\N	\N	Available	2025-08-12
-10	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	\N	\N	Available	2025-08-12
-2	Laptop Updated	HP OMEN 17 TRANSCEND Updated	Electronics	15	pcs	IT Office	Available	2025-08-12
-14	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12
-15	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12
-16	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12
-17	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12
-21	WORKSTATION	HP Z5	Electronics	1	pcs	IT Office	Available	2025-08-11
+COPY public.picto_inventory (item_id, item_name, description, category, quantity, unit, location, status, date_added, serial_number) FROM stdin;
+101	Ergonomic Office Chair	Comfortable office chair with adjustable height and lumbar support	Office Furniture	15	pcs	Main Office	Available	2025-08-12	\N
+11	Ergonomic Office Chair	Comfortable office chair	Office Furniture	15	pcs	Main Office	Available	2025-08-12	\N
+4	Office Desk	Wooden office desk	Office Furniture	10	pcs	Main Office	Available	2025-08-13	\N
+5	Projector	HD projector for meetings	IT Equipment	5	pcs	Conference Room	Available	2025-08-13	\N
+6	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-12	\N
+7	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-12	\N
+8	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-11	\N
+9	Laptop	\N	Electronics	5	\N	\N	Available	2025-08-12	\N
+10	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	\N	\N	Available	2025-08-12	\N
+2	Laptop Updated	HP OMEN 17 TRANSCEND Updated	Electronics	15	pcs	IT Office	Available	2025-08-12	\N
+14	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12	\N
+15	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12	\N
+17	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12	\N
+21	WORKSTATION	HP Z5	Electronics	1	pcs	IT Office	Available	2025-08-11	\N
+24	Laptop	LENOVO THINKPAD T14	Electronics	10	pcs	IT Office	Available	2025-08-12	\N
 \.
 
 
 --
--- TOC entry 4933 (class 0 OID 26399)
--- Dependencies: 236
 -- Data for Name: request_archive; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -640,8 +589,6 @@ COPY public.request_archive (req_id, requestor_name, requestor_position, departm
 
 
 --
--- TOC entry 4921 (class 0 OID 26290)
--- Dependencies: 224
 -- Data for Name: request_forms; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -652,29 +599,23 @@ COPY public.request_forms (req_id, requestor_name, requestor_position, departmen
 
 
 --
--- TOC entry 4931 (class 0 OID 26373)
--- Dependencies: 234
 -- Data for Name: requisition_archive; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.requisition_archive (rf_id, requester_name, requester_position, department, purpose, date_requested, checked_by_name, checked_by_position, checked_by_date, approved_by_name, approved_by_position, approved_by_date, issued_by_name, issued_by_position, issued_by_date, received_by_name, received_by_position, received_by_date, is_archived) FROM stdin;
+COPY public.requisition_archive (rf_id, requester_name, requester_position, department, purpose, date_requested, checked_by_name, checked_by_position, checked_by_date, approved_by_name, approved_by_position, approved_by_date, issued_by_name, issued_by_position, issued_by_date, received_by_name, received_by_position, received_by_date, is_archived, archived_at, archived_reason, archived_by) FROM stdin;
+2	Chuckz	CEO	IT	Purchase new laptops	2025-08-14 05:43:21.529	Jane Checker	IT Supervisor	2025-08-14 06:00:00	Alex Approver	CIO	2025-08-14 06:30:00	Sam Issuer	Inventory Officer	2025-08-14 07:00:00	John Receiver	IT Staff	2025-08-14 07:30:00	t	2025-08-18 21:35:16.983658	string	string
 \.
 
 
 --
--- TOC entry 4923 (class 0 OID 26297)
--- Dependencies: 226
 -- Data for Name: requisition_forms; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.requisition_forms (rf_id, requester_name, requester_position, department, purpose, date_requested, checked_by_name, checked_by_position, checked_by_date, approved_by_name, approved_by_position, approved_by_date, issued_by_name, issued_by_position, issued_by_date, received_by_name, received_by_position, received_by_date, is_archived) FROM stdin;
-2	Chuckz	CEO	IT	Purchase new laptops	2025-08-13 21:43:21.529	Jane Checker	IT Supervisor	2025-08-13 22:00:00	Alex Approver	CIO	2025-08-13 22:30:00	Sam Issuer	Inventory Officer	2025-08-13 23:00:00	John Receiver	IT Staff	2025-08-13 23:30:00	f
 \.
 
 
 --
--- TOC entry 4925 (class 0 OID 26305)
--- Dependencies: 228
 -- Data for Name: transfer_in; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -688,8 +629,6 @@ COPY public.transfer_in (transfer_in_id, item_id, quantity, from_location, date_
 
 
 --
--- TOC entry 4927 (class 0 OID 26312)
--- Dependencies: 230
 -- Data for Name: transfer_out; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -703,8 +642,6 @@ COPY public.transfer_out (transfer_out_id, item_id, quantity, to_location, date_
 
 
 --
--- TOC entry 4929 (class 0 OID 26319)
--- Dependencies: 232
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -716,17 +653,6 @@ COPY public.users (user_id, username, password_hash, full_name, role, email, pho
 
 
 --
--- TOC entry 4949 (class 0 OID 0)
--- Dependencies: 219
--- Name: inventory_tracking_history_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.inventory_tracking_history_history_id_seq', 8, true);
-
-
---
--- TOC entry 4950 (class 0 OID 0)
--- Dependencies: 221
 -- Name: pc_repair_tracker_repair_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -734,17 +660,20 @@ SELECT pg_catalog.setval('public.pc_repair_tracker_repair_id_seq', 2, true);
 
 
 --
--- TOC entry 4951 (class 0 OID 0)
--- Dependencies: 223
+-- Name: picto_archive_archive_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.picto_archive_archive_id_seq', 2, true);
+
+
+--
 -- Name: picto_inventory_item_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.picto_inventory_item_id_seq', 22, true);
+SELECT pg_catalog.setval('public.picto_inventory_item_id_seq', 25, true);
 
 
 --
--- TOC entry 4952 (class 0 OID 0)
--- Dependencies: 235
 -- Name: request_forms_archive_req_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -752,8 +681,6 @@ SELECT pg_catalog.setval('public.request_forms_archive_req_id_seq', 1, false);
 
 
 --
--- TOC entry 4953 (class 0 OID 0)
--- Dependencies: 225
 -- Name: request_forms_req_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -761,17 +688,13 @@ SELECT pg_catalog.setval('public.request_forms_req_id_seq', 2, true);
 
 
 --
--- TOC entry 4954 (class 0 OID 0)
--- Dependencies: 227
 -- Name: requisition_forms_rf_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.requisition_forms_rf_id_seq', 4, true);
+SELECT pg_catalog.setval('public.requisition_forms_rf_id_seq', 5, true);
 
 
 --
--- TOC entry 4955 (class 0 OID 0)
--- Dependencies: 229
 -- Name: transfer_in_transfer_in_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -779,8 +702,6 @@ SELECT pg_catalog.setval('public.transfer_in_transfer_in_id_seq', 6, true);
 
 
 --
--- TOC entry 4956 (class 0 OID 0)
--- Dependencies: 231
 -- Name: transfer_out_transfer_out_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -788,8 +709,6 @@ SELECT pg_catalog.setval('public.transfer_out_transfer_out_id_seq', 5, true);
 
 
 --
--- TOC entry 4957 (class 0 OID 0)
--- Dependencies: 233
 -- Name: users_user_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -797,16 +716,6 @@ SELECT pg_catalog.setval('public.users_user_id_seq', 18, true);
 
 
 --
--- TOC entry 4745 (class 2606 OID 26336)
--- Name: picto_archive inventory_tracking_history_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.picto_archive
-    ADD CONSTRAINT inventory_tracking_history_pkey PRIMARY KEY (history_id);
-
-
---
--- TOC entry 4747 (class 2606 OID 26338)
 -- Name: pc_repair_tracker pc_repair_tracker_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -815,7 +724,14 @@ ALTER TABLE ONLY public.pc_repair_tracker
 
 
 --
--- TOC entry 4749 (class 2606 OID 26340)
+-- Name: picto_archive picto_archive_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.picto_archive
+    ADD CONSTRAINT picto_archive_pkey PRIMARY KEY (archive_id);
+
+
+--
 -- Name: picto_inventory picto_inventory_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -824,7 +740,6 @@ ALTER TABLE ONLY public.picto_inventory
 
 
 --
--- TOC entry 4763 (class 2606 OID 26379)
 -- Name: requisition_archive pk_requisition_archive; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -833,7 +748,6 @@ ALTER TABLE ONLY public.requisition_archive
 
 
 --
--- TOC entry 4765 (class 2606 OID 26407)
 -- Name: request_archive request_forms_archive_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -842,7 +756,6 @@ ALTER TABLE ONLY public.request_archive
 
 
 --
--- TOC entry 4751 (class 2606 OID 26342)
 -- Name: request_forms request_forms_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -851,7 +764,6 @@ ALTER TABLE ONLY public.request_forms
 
 
 --
--- TOC entry 4753 (class 2606 OID 26344)
 -- Name: requisition_forms requisition_forms_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -860,7 +772,6 @@ ALTER TABLE ONLY public.requisition_forms
 
 
 --
--- TOC entry 4755 (class 2606 OID 26346)
 -- Name: transfer_in transfer_in_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -869,7 +780,6 @@ ALTER TABLE ONLY public.transfer_in
 
 
 --
--- TOC entry 4757 (class 2606 OID 26348)
 -- Name: transfer_out transfer_out_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -878,7 +788,6 @@ ALTER TABLE ONLY public.transfer_out
 
 
 --
--- TOC entry 4759 (class 2606 OID 26350)
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -887,7 +796,6 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 4761 (class 2606 OID 26352)
 -- Name: users users_username_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -896,16 +804,6 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 4766 (class 2606 OID 26353)
--- Name: picto_archive inventory_tracking_history_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.picto_archive
-    ADD CONSTRAINT inventory_tracking_history_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.picto_inventory(item_id) ON DELETE CASCADE;
-
-
---
--- TOC entry 4767 (class 2606 OID 26358)
 -- Name: pc_repair_tracker pc_repair_tracker_request_form_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -914,7 +812,6 @@ ALTER TABLE ONLY public.pc_repair_tracker
 
 
 --
--- TOC entry 4768 (class 2606 OID 26363)
 -- Name: transfer_in transfer_in_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -923,15 +820,12 @@ ALTER TABLE ONLY public.transfer_in
 
 
 --
--- TOC entry 4769 (class 2606 OID 26368)
 -- Name: transfer_out transfer_out_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.transfer_out
     ADD CONSTRAINT transfer_out_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.picto_inventory(item_id) ON DELETE CASCADE;
 
-
--- Completed on 2025-08-13 23:38:47
 
 --
 -- PostgreSQL database dump complete

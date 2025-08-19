@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\toshiba\\Downloads\\pictoims\\pictodev\\PictoIMS.API\\PictoIMS.API.csproj": {}
+    "C:\\Users\\Jeff\\Desktop\\New folder (2)\\ims\\pictodev\\PictoIMS.API\\PictoIMS.API.csproj": {}
   },
   "projects": {
-    "C:\\Users\\toshiba\\Downloads\\pictoims\\pictodev\\PictoIMS.API\\PictoIMS.API.csproj": {
+    "C:\\Users\\Jeff\\Desktop\\New folder (2)\\ims\\pictodev\\PictoIMS.API\\PictoIMS.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\toshiba\\Downloads\\pictoims\\pictodev\\PictoIMS.API\\PictoIMS.API.csproj",
+        "projectUniqueName": "C:\\Users\\Jeff\\Desktop\\New folder (2)\\ims\\pictodev\\PictoIMS.API\\PictoIMS.API.csproj",
         "projectName": "PictoIMS.API",
-        "projectPath": "C:\\Users\\toshiba\\Downloads\\pictoims\\pictodev\\PictoIMS.API\\PictoIMS.API.csproj",
-        "packagesPath": "C:\\Users\\toshiba\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\toshiba\\Downloads\\pictoims\\pictodev\\PictoIMS.API\\obj\\",
+        "projectPath": "C:\\Users\\Jeff\\Desktop\\New folder (2)\\ims\\pictodev\\PictoIMS.API\\PictoIMS.API.csproj",
+        "packagesPath": "C:\\Users\\Jeff\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Jeff\\Desktop\\New folder (2)\\ims\\pictodev\\PictoIMS.API\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\toshiba\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Jeff\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net9.0"

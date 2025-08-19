@@ -21,6 +21,7 @@ export interface LoginResponse {
 export interface InventoryItem {
   itemId: number;
   itemName: string;
+  serial_number?: string;
   description?: string;
   category?: string;
   quantity: number;
@@ -28,6 +29,7 @@ export interface InventoryItem {
   location?: string;
   status: string;
   dateAdded: string;
+  selected?: boolean;
 }
 
 export interface CreateInventoryRequest {
@@ -97,4 +99,13 @@ export interface ApiResponse<T> {
   data?: T;
   message?: string;
   success: boolean;
+  errors?: string[];
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
 }

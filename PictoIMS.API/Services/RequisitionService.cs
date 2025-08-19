@@ -99,31 +99,26 @@ namespace PictoIMS.API.Services
             }
         }
 
-        public async Task<bool> SoftDeleteAsync(int id)
+        public async Task<bool> SoftDeleteAsync(int id, string reason = "Archived", string archivedBy = "system")
         {
             var form = await _context.RequisitionForms
                 .Where(f => f.RfId == id && !f.IsArchived)
                 .FirstOrDefaultAsync();
 
             if (form == null)
-            {
-                _logger.LogWarning("Attempted to archive non-existent requisition form with ID {Id}", id);
                 return false;
-            }
 
-            // Use a transaction to ensure the move is atomic.
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Create an archive entry by copying data from the original form.
                 var archive = new RequisitionArchive
                 {
-                    RfId = form.RfId, // Re-use the same ID.
+                    RfId = form.RfId,
                     RequesterName = form.RequesterName,
                     RequesterPosition = form.RequesterPosition,
                     Department = form.Department,
                     Purpose = form.Purpose,
-                    DateRequested = form.DateRequested, // Dates are already UTC.
+                    DateRequested = form.DateRequested,
                     CheckedByName = form.CheckedByName,
                     CheckedByPosition = form.CheckedByPosition,
                     CheckedByDate = form.CheckedByDate,
@@ -136,7 +131,12 @@ namespace PictoIMS.API.Services
                     ReceivedByName = form.ReceivedByName,
                     ReceivedByPosition = form.ReceivedByPosition,
                     ReceivedByDate = form.ReceivedByDate,
-                    IsArchived = true
+                    IsArchived = true,
+
+                    // audit
+                    ArchivedAt = DateTime.UtcNow,
+                    ArchivedReason = reason,
+                    ArchivedBy = archivedBy
                 };
 
                 _context.RequisitionArchives.Add(archive);
@@ -144,15 +144,12 @@ namespace PictoIMS.API.Services
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
-
-                _logger.LogInformation("Archived requisition form with ID {RfId}", id);
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error archiving requisition form with ID {Id}", id);
-                throw; // Re-throw to be caught by the controller's error handler.
+                throw;
             }
         }
 
@@ -171,7 +168,6 @@ namespace PictoIMS.API.Services
             {
                 _context.RequisitionArchives.Remove(archive);
                 await _context.SaveChangesAsync();
-
                 _logger.LogInformation("Permanently deleted archived requisition form with ID {RfId}", id);
                 return true;
             }

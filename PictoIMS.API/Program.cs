@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using PictoIMS.API.Data;
 using PictoIMS.API.Services;
@@ -19,6 +19,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRequisitionService, RequisitionService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
 
 // Add authentication with JWT Bearer
 var jwtKey = builder.Configuration["Jwt:Key"];

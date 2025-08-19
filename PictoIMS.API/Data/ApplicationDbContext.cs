@@ -12,15 +12,20 @@ namespace PictoIMS.API.Data
         public DbSet<RequisitionForm> RequisitionForms { get; set; } = null!;
         public DbSet<RequisitionArchive> RequisitionArchives { get; set; } = null!;
         public DbSet<InventoryTrackingHistory> InventoryTrackingHistories { get; set; } = null!;
+        public DbSet<InventoryArchive> InventoryArchives { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<User>().ToTable("users");
+
             modelBuilder.Entity<PictoInventory>().ToTable("picto_inventory");
+            modelBuilder.Entity<InventoryArchive>().ToTable("picto_archive");
+
             modelBuilder.Entity<RequisitionForm>().ToTable("requisition_forms");
             modelBuilder.Entity<RequisitionArchive>().ToTable("requisition_archive");
+
             modelBuilder.Entity<InventoryTrackingHistory>().ToTable("inventory_tracking_history");
         }
     }

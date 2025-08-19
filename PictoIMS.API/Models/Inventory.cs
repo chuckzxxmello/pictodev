@@ -45,6 +45,10 @@ namespace PictoIMS.API.Models
         [Column("date_added")]
         public DateTime DateAdded { get; set; } = DateTime.UtcNow;
 
+        [Column("serial_number")]
+        [StringLength(100)]
+        public string? SerialNumber { get; set; }
+
         public virtual ICollection<InventoryTrackingHistory> TrackingHistory { get; set; } = new List<InventoryTrackingHistory>();
         public virtual ICollection<TransferIn> TransferIns { get; set; } = new List<TransferIn>();
         public virtual ICollection<TransferOut> TransferOuts { get; set; } = new List<TransferOut>();

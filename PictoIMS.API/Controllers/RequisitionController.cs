@@ -22,12 +22,12 @@ namespace PictoIMS.API.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Get all requisition forms
-        /// </summary>
+        // if the systems has bugs, throw this error
         [HttpGet]
         [ProducesResponseType(typeof(List<RequisitionForm>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
+
+        // method handler for checking if database if active or not and getting the data
         public async Task<IActionResult> GetAll()
         {
             try
@@ -46,9 +46,7 @@ namespace PictoIMS.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Get a specific requisition form by ID
-        /// </summary>
+        // method to display api status codes
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(RequisitionForm), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
@@ -77,9 +75,7 @@ namespace PictoIMS.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Create a new requisition form
-        /// </summary>
+        // Create a new requisition form
         [HttpPost]
         [ProducesResponseType(typeof(RequisitionForm), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -112,9 +108,7 @@ namespace PictoIMS.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Update an existing requisition form
-        /// </summary>
+        // Update an existing requisition form
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(RequisitionForm), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -140,10 +134,9 @@ namespace PictoIMS.API.Controllers
                 form.RfId = id; // Ensure the ID matches
                 var updated = await _service.UpdateAsync(id, form);
                 if (!updated)
-                    return NotFound(new ApiErrorResponse { Message = "Requisition form not found", Detail = $"No requisition form found with ID {id} to update" });
+                    return NotFound(new ApiErrorResponse { Message = "Requisition data not found", Detail = $"No requisition form found with ID {id} to update" });
 
-                var updatedForm = await _service.GetByIdAsync(id);
-                return Ok(updatedForm);
+                return Ok(await _service.GetByIdAsync(id));
             }
             catch (Exception ex)
             {
@@ -156,22 +149,23 @@ namespace PictoIMS.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Soft delete a requisition form (moves to archive)
-        /// </summary>
+        // Soft delete a requisition form (moves to archive)
         [HttpDelete("{id}")]
         [ProducesResponseType(typeof(ApiSuccessResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, [FromBody] ArchiveRequest? request)
         {
+            string reason = request?.Reason ?? "Archived via API";
+            string archivedBy = request?.ArchivedBy ?? "system";
+
             try
             {
                 if (id <= 0)
                     return BadRequest(new ApiErrorResponse { Message = "Invalid ID", Detail = "ID must be greater than 0" });
 
-                var deleted = await _service.SoftDeleteAsync(id);
+                var deleted = await _service.SoftDeleteAsync(id, reason, archivedBy);
                 if (!deleted)
                     return NotFound(new ApiErrorResponse { Message = "Requisition form not found", Detail = $"No requisition form found with ID {id} to archive" });
 
@@ -192,9 +186,7 @@ namespace PictoIMS.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Permanently delete an archived requisition form
-        /// </summary>
+        // Permanently HARD delete an archived requisition form
         [HttpDelete("archive/{id}")]
         [ProducesResponseType(typeof(ApiSuccessResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -228,9 +220,7 @@ namespace PictoIMS.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Get all archived requisition forms
-        /// </summary>
+        // Get all archived requisition forms
         [HttpGet("archive")]
         [ProducesResponseType(typeof(List<RequisitionArchive>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -239,7 +229,7 @@ namespace PictoIMS.API.Controllers
             try
             {
                 var archivedForms = await _service.GetAllArchivedAsync();
-                return Ok(archivedForms);
+                return Ok(await _service.GetAllArchivedAsync());
             }
             catch (Exception ex)
             {
@@ -252,9 +242,7 @@ namespace PictoIMS.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Get a specific archived requisition form by ID
-        /// </summary>
+        // Get a specific archived requisition form by ID
         [HttpGet("archive/{id}")]
         [ProducesResponseType(typeof(RequisitionArchive), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -295,5 +283,11 @@ namespace PictoIMS.API.Controllers
     {
         public string Message { get; set; } = string.Empty;
         public string Detail { get; set; } = string.Empty;
+    }
+
+    public class ArchiveRequest
+    {
+        public string? Reason { get; set; }
+        public string? ArchivedBy { get; set; }
     }
 }
