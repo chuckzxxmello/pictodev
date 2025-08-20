@@ -8,9 +8,9 @@ namespace PictoIMS.API.Models
     public class RequisitionArchive
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)] // Use same ID as original requisition form
         [Column("rf_id")]
-        public int RfId { get; set; }
+        [StringLength(50)]
+        public string RfId { get; set; } = null!;  // <-- was int, now string
 
         [Column("requester_name")]
         public string RequesterName { get; set; } = null!;
@@ -66,7 +66,6 @@ namespace PictoIMS.API.Models
         [Column("is_archived")]
         public bool IsArchived { get; set; } = true;
 
-        // audit trail for archive action
         [Column("archived_at", TypeName = "timestamp with time zone")]
         public DateTime ArchivedAt { get; set; } = DateTime.UtcNow;
 

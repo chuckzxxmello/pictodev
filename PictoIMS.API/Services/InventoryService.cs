@@ -120,6 +120,49 @@ namespace PictoIMS.API.Services
             }
         }
 
+        public async Task<bool> SoftDeleteBulkAsync(int[] ids)
+        {
+            try
+            {
+                var items = await _context.PictoInventories
+                                        .Where(i => ids.Contains(i.ItemId))
+                                        .ToListAsync();
+
+                if (!items.Any()) return false;
+
+                foreach (var item in items)
+                {
+                    var archive = new InventoryArchive
+                    {
+                        ItemId = item.ItemId,
+                        ItemName = item.ItemName,
+                        Description = item.Description,
+                        Category = item.Category,
+                        Quantity = item.Quantity,
+                        Unit = item.Unit,
+                        Location = item.Location,
+                        Status = item.Status,
+                        DateAdded = item.DateAdded,
+                        SerialNumber = item.SerialNumber,
+                        ArchivedReason = "Bulk soft delete",
+                        ArchivedBy = "System",
+                        OriginalItemId = item.ItemId
+                    };
+
+                    _context.InventoryArchives.Add(archive);
+                    _context.PictoInventories.Remove(item);
+                }
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error soft deleting inventory items in bulk");
+                return false;
+            }
+        }
+
         public async Task<bool> HardDeleteAsync(int archiveId)
         {
             try
@@ -138,6 +181,8 @@ namespace PictoIMS.API.Services
             }
         }
 
+
+        // Implementation must match exactly:
         public async Task<List<InventoryArchive>> GetAllArchivedAsync()
         {
             try
@@ -152,6 +197,24 @@ namespace PictoIMS.API.Services
                 throw;
             }
         }
+
+public async Task<List<InventoryArchive>> SearchArchivedAsync(DateTime? start, DateTime? end, string? keyword)
+{
+    var query = _context.InventoryArchives.AsQueryable();
+
+    if (start.HasValue)
+        query = query.Where(a => a.ArchivedAt >= start.Value);
+
+    if (end.HasValue)
+        query = query.Where(a => a.ArchivedAt <= end.Value);
+
+    if (!string.IsNullOrWhiteSpace(keyword))
+        query = query.Where(a => a.ItemName.Contains(keyword) || a.Description.Contains(keyword));
+
+    return await query.OrderByDescending(a => a.ArchivedAt).ToListAsync();
+}
+
+
 
         public async Task<InventoryArchive?> GetArchivedByIdAsync(int archiveId)
         {

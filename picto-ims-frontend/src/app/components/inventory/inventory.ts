@@ -17,7 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 import { Subscription,firstValueFrom } from 'rxjs';
 import { SidebarComponent } from '../../sidebar/sidebar.components';
-import { PictoInventory, InventoryService } from '../../services/inventory.service';
+import { PictoInventory, InventoryService, CreatePictoInventoryRequest, UpdatePictoInventoryRequest } from '../../services/inventory.service';
 
 import { InventoryAddDialogComponent } from './inventory.add';
 import { InventoryEditDialogComponent } from './inventory.edit';
@@ -29,26 +29,21 @@ import { InventoryDeleteDialogComponent } from './inventory.delete';
   imports: [
     CommonModule,
     RouterModule,
-    FormsModule,
-    RouterOutlet,
-    MatSlideToggleModule,
-    MatTableModule,
+    MatFormFieldModule,
+    MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatInputModule,
-    MatFormFieldModule,
-    MatSelectModule,
+    MatTableModule,
     MatCheckboxModule,
+    MatSlideToggleModule,
+    MatSelectModule,
     MatTooltipModule,
+    FormsModule,
     SidebarComponent
   ],
   template: `
   <div class="layout">
-    <app-sidebar
-      class="sidebar"
-      [class.collapsed]="isCollapsed"
-      (toggle)="isCollapsed = !isCollapsed">
-    </app-sidebar>
+    <app-sidebar [class.collapsed]="isCollapsed" (toggle)="isCollapsed = !isCollapsed"></app-sidebar>
 
     <div class="content">
       <header class="top-header">
@@ -56,138 +51,122 @@ import { InventoryDeleteDialogComponent } from './inventory.delete';
           <h2>Inventory</h2>
         </div>
         <div class="header-right">
-          <img src="assets/images/header-right.png" alt="pgc logo" class="headerr-img">
+          <img src="assets/images/header-right.png" alt="pgc logo" class="header-img">
         </div>
       </header>
 
+
       <div class="content-area">
         <div class="table-section">
+
+          <!-- Table Controls -->
           <div class="table-controls">
             <div class="controls-left">
-              <button mat-stroked-button class="export-btn" (click)="exportCSV()">
-                Export
-              </button>
-              <button mat-stroked-button class="add-btn" (click)="openAddDialog()">
-                Add
-              </button>
-              <button mat-stroked-button class="add-btn" 
-                      [disabled]="!getSelectedItem()" 
-                      (click)="openEditDialog(getSelectedItem()!)">
-                Edit
-              </button>
+              <button mat-stroked-button class="export-btn" (click)="exportCSV()">Export</button>
+              <button mat-stroked-button class="add-btn" (click)="openAddDialog()">Add</button>
               <button mat-stroked-button class="add-btn"
                       [disabled]="!getSelectedItem()"
-                      (click)="openDeleteDialog(getSelectedItem()!)">
-                Delete
+                      (click)="openEditDialog(getSelectedItem()!)">Edit</button>
+              <button mat-stroked-button
+                      [disabled]="getSelectedCount() === 0"
+                      (click)="openDeleteDialog(getSelectedItems())"
+                      color="warn">
+                {{ getSelectedCount() === dataSource().length ? 'Delete All' : 'Delete' }}
               </button>
             </div>
             <div class="controls-right">
-              <mat-form-field appearance="outline" class="search-field">
-                <input matInput placeholder="Search.." (input)="onSearch($event)">
-              </mat-form-field>
+              <input type="text" placeholder="Search..." (input)="onSearch($event)">
             </div>
+          </div>
 
-            <div class="table-container">
-  <table mat-table [dataSource]="dataSource()" class="data-table">
+          <!-- Table -->
+          <div class="table-container">
+            <table mat-table [dataSource]="dataSource()" class="data-table">
 
-  <!-- Select Column -->
-  <ng-container matColumnDef="select">
-    <th mat-header-cell *matHeaderCellDef>
-      <mat-checkbox
-        [checked]="isAllSelected()"
-        [indeterminate]="isIndeterminate()"
-        (change)="toggleAllSelection()">
-      </mat-checkbox>
-    </th>
-    <td mat-cell *matCellDef="let row">
-      <mat-checkbox [(ngModel)]="row.selected"></mat-checkbox>
-    </td>
-  </ng-container>
+              <!-- Select Column -->
+              <ng-container matColumnDef="select">
+                <th mat-header-cell *matHeaderCellDef>
+                  <mat-checkbox [checked]="isAllSelected()"
+                                [indeterminate]="isIndeterminate()"
+                                (change)="toggleAllSelection()">
+                  </mat-checkbox>
+                </th>
+                <td mat-cell *matCellDef="let row">
+                  <mat-checkbox [(ngModel)]="row.selected"></mat-checkbox>
+                </td>
+              </ng-container>
 
-  <ng-container matColumnDef="item_id">
-    <th mat-header-cell *matHeaderCellDef>ID</th>
-    <td mat-cell *matCellDef="let element">{{element.item_id}}</td>
-  </ng-container>
+              <!-- Inventory Columns -->
+              <ng-container matColumnDef="item_id">
+                <th mat-header-cell *matHeaderCellDef>ID</th>
+                <td mat-cell *matCellDef="let element">{{element.item_id}}</td>
+              </ng-container>
 
-  <ng-container matColumnDef="itemName">
-  <th mat-header-cell *matHeaderCellDef>Name</th>
-  <td mat-cell *matCellDef="let element">{{element.itemName}}</td>
-  </ng-container>
+              <ng-container matColumnDef="itemName">
+                <th mat-header-cell *matHeaderCellDef>Name</th>
+                <td mat-cell *matCellDef="let element">{{element.itemName}}</td>
+              </ng-container>
 
-  <ng-container matColumnDef="serialNumber">
-  <th mat-header-cell *matHeaderCellDef>Serial Number</th>
-  <td mat-cell *matCellDef="let element">{{element.serialNumber}}</td>
-  </ng-container>
+              <ng-container matColumnDef="serialNumber">
+                <th mat-header-cell *matHeaderCellDef>Serial Number</th>
+                <td mat-cell *matCellDef="let element">{{element.serialNumber}}</td>
+              </ng-container>
 
-  <ng-container matColumnDef="description">
-    <th mat-header-cell *matHeaderCellDef>Description</th>
-    <td mat-cell *matCellDef="let element">{{element.description}}</td>
-  </ng-container>
+              <ng-container matColumnDef="description">
+                <th mat-header-cell *matHeaderCellDef>Description</th>
+                <td mat-cell *matCellDef="let element">{{element.description}}</td>
+              </ng-container>
 
-  <ng-container matColumnDef="category">
-    <th mat-header-cell *matHeaderCellDef>Category</th>
-    <td mat-cell *matCellDef="let element">{{element.category}}</td>
-  </ng-container>
+              <ng-container matColumnDef="category">
+                <th mat-header-cell *matHeaderCellDef>Category</th>
+                <td mat-cell *matCellDef="let element">{{element.category}}</td>
+              </ng-container>
 
-  <ng-container matColumnDef="quantity">
-    <th mat-header-cell *matHeaderCellDef>Qty</th>
-    <td mat-cell *matCellDef="let element">{{element.quantity}}</td>
-  </ng-container>
+              <ng-container matColumnDef="quantity">
+                <th mat-header-cell *matHeaderCellDef>Qty</th>
+                <td mat-cell *matCellDef="let element">{{element.quantity}}</td>
+              </ng-container>
 
-  <ng-container matColumnDef="unit">
-    <th mat-header-cell *matHeaderCellDef>Unit</th>
-    <td mat-cell *matCellDef="let element">{{element.unit}}</td>
-  </ng-container>
+              <ng-container matColumnDef="unit">
+                <th mat-header-cell *matHeaderCellDef>Unit</th>
+                <td mat-cell *matCellDef="let element">{{element.unit}}</td>
+              </ng-container>
 
-  <ng-container matColumnDef="location">
-    <th mat-header-cell *matHeaderCellDef>Location</th>
-    <td mat-cell *matCellDef="let element">{{element.location}}</td>
-  </ng-container>
+              <ng-container matColumnDef="location">
+                <th mat-header-cell *matHeaderCellDef>Location</th>
+                <td mat-cell *matCellDef="let element">{{element.location}}</td>
+              </ng-container>
 
-  <ng-container matColumnDef="status">
-    <th mat-header-cell *matHeaderCellDef>Status</th>
-    <td mat-cell *matCellDef="let element">
-      <span class="status-badge" [class.available]="element.status==='Available'" [class.unavailable]="element.status!=='Available'">
-        {{element.status}}
-      </span>
-    </td>
-  </ng-container>
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <td mat-cell *matCellDef="let element">
+                  <span class="status-badge"
+                        [class.available]="element.status==='Available'"
+                        [class.unavailable]="element.status!=='Available'">
+                    {{element.status}}
+                  </span>
+                </td>
+              </ng-container>
 
-  <ng-container matColumnDef="dateAdded">
-  <th mat-header-cell *matHeaderCellDef>Date Added</th>
-  <td mat-cell *matCellDef="let element">{{element.dateAdded | date:'mediumDate'}}</td>
-  </ng-container>
+              <ng-container matColumnDef="dateAdded">
+                <th mat-header-cell *matHeaderCellDef>Date Added</th>
+                <td mat-cell *matCellDef="let element">{{element.dateAdded | date:'mediumDate'}}</td>
+              </ng-container>
 
-  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-  <tr mat-row *matRowDef="let row; columns: displayedColumns;" [class.selected-row]="row.selected"></tr>
-</table>
-            </div>
+              <!-- Table Rows -->
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;" [class.selected-row]="row.selected"></tr>
+
+            </table>
           </div>
         </div>
       </div>
     </div>
   </div>
-  `,
+`,
   styles: [`
-    @font-face {
-      font-family: 'Montserrat';
-      src: url('/assets/fonts/Montserrat.ttf') format('truetype');
-    }
-
-    .layout {
-      display: flex;
-      height: 100vh;
-      transition: all 0.3s ease;
-    }
-
-    .content {
-      flex: 1;                    /* always take remaining space */
-      padding: 10px;
-      transition: all 0.3s ease;  /* smooth resize */
-      width: 100%;
-    }
-
-
+    .layout { display:flex; height:100vh; transition: all 0.3s ease; }
+    .content { flex:1; padding:10px; width:100%; }
     .top-header { 
       height: 60px; 
       background: white; 
@@ -197,136 +176,18 @@ import { InventoryDeleteDialogComponent } from './inventory.delete';
       padding: 0 24px; 
       box-shadow: 0 2px 4px rgba(0,0,0,0.05);
       border-bottom: 1px solid #e5e7eb;
-    }
-
-    .header-left h2 {
-      margin: 0;
-      color: #1f2937;
-      font-size: 1.5rem;
-    }
-
-    .headerr-img {
-      width: auto;
-      height: 50px;
-    }
-      
-    .content-area {
-      flex: 1;
-      padding: 24px;
-    }
-
-    .table-section { 
-      background: white; 
-      border-radius: 12px; 
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
-      overflow: hidden;
-      border: 1px solid #e5e7eb;
-    }
-
-    .table-controls { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center;
-      padding: 20px 24px;
-      border-bottom: 1px solid #f3f4f6;
-      background: #fafbfc;
-    }
-
-    .controls-left {
-      display: flex;
-      gap: 8px;
-    }
-
-    .controls-left button {
-      font-size: 0.875rem;
-      padding: 8px 16px;
-    }
-
-    .export-btn {
-      color: #059669;
-      border-color: #059669;
-    }
-
-    .add-btn {
-      color: #3b82f6;
-      border-color: #3b82f6;
-    }
-
-    .search-field {
-      width: 300px;
-    }
-
-    .table-container {
-      overflow-x: auto;
-    }
-
-    .data-table { 
-      width: 100%; 
-      border-spacing: 0; 
-      font-size: 0.875rem; 
-    }
-
-    .data-table th { 
-      background: #f9fafb; 
-      padding: 16px 12px; 
-      font-weight: 600;
-      text-align: left;
-      border-bottom: 2px solid #e5e7eb;
-      color: #374151;
-    }
-
-    .data-table td { 
-      padding: 12px; 
-      border-bottom: 1px solid #f3f4f6;
-    }
-
-    .status-badge { 
-      padding: 4px 12px; 
-      border-radius: 16px; 
-      font-size: 0.75rem; 
-      font-weight: 600; 
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .status-badge.available { 
-      background: #d1fae5; 
-      color: #065f46; 
-    }
-
-    .status-badge.unavailable { 
-      background: #fee2e2; 
-      color: #991b1b; 
-    }
-
-    .selected-row { 
-      background-color: #eff6ff !important; 
-    }
-
-    .data-table tr:hover {
-      background-color: #f9fafb;
-    }
-
-    .selected-row:hover {
-      background-color: #dbeafe !important;
-    }
-
-    /* Responsive design */
-    @media (max-width: 768px) {
-      .main-content {
-        margin-left: 0;
-      }
-
-      .table-controls {
-        flex-direction: column;
-        gap: 16px;
-        align-items: stretch;
-      }
-
-      .search-field {
-        width: 100%;
-      }
-    }
+    } 
+    .content-area { padding:24px; flex:1; }
+    .table-section { background:white; border-radius:12px; overflow:hidden; border:1px solid #e5e7eb; }
+    .table-controls { display:flex; justify-content:space-between; padding:20px 24px; border-bottom:1px solid #f3f4f6; }
+    .controls-left { display:flex; gap:8px; }
+    .table-container { overflow-x:auto; }
+    .data-table { width:100%; border-spacing:0; font-size:0.875rem; }
+    .data-table th { background:#f9fafb; padding:16px 12px; font-weight:600; border-bottom:2px solid #e5e7eb; text-align:left; }
+    .data-table td { padding:12px; border-bottom:1px solid #f3f4f6; }
+    .selected-row { background-color:#eff6ff !important; }
+    .data-table tr:hover { background-color:#f9fafb; }
+    .header-img {  width: auto;  height: 50px; }
   `]
 })
 
@@ -388,91 +249,173 @@ export class Inventory implements OnInit, OnDestroy {
   }
 
   private addNewItem(itemData: any) {
-    const newItem: PictoInventory = {
-      itemId: Math.max(0, ...this.dataSource().map(i => i.itemId)) + 1,
-      itemName: itemData.name,
-      serialNumber: itemData.serial_no || '',
-      description: itemData.description || '',
-      category: itemData.category || '',
-      quantity: itemData.quantity || 0,
-      unit: itemData.unit || '',
-      location: itemData.location || '',
-      status: itemData.status || 'Available',
-      dateAdded: new Date().toISOString(),
-      selected: false
-    };
-    
-    this.dataSource.set([newItem, ...this.dataSource()]);
-    this.originalDataSource.push(newItem);
-    this.snack.open('Item added successfully', 'OK', { duration: 2000 });
+  if (!itemData.name?.trim()) {
+    this.snack.open('Item name is required', 'OK', { duration: 3000 });
+    return;
   }
 
-  /** --- Edit Dialog --- */
-  openEditDialog(item: PictoInventory) {
+  if (!itemData.quantity || itemData.quantity <= 0) {
+    this.snack.open('Quantity must be greater than zero', 'OK', { duration: 3000 });
+    return;
+  }
+
+  const newItemRequest = {
+    itemName: itemData.name,
+    serialNumber: itemData.serial_no || '',
+    description: itemData.description || '',
+    category: itemData.category || '',
+    quantity: itemData.quantity,
+    unit: itemData.unit || '',
+    location: itemData.location || '',
+    status: itemData.status || 'Available'
+  };
+
+  this.inventoryService.createInventory(newItemRequest).subscribe({
+    next: (createdItem) => {
+      this.dataSource.set([createdItem, ...this.dataSource()]);
+      this.originalDataSource.push(createdItem);
+      this.snack.open('Item added successfully', 'OK', { duration: 2000 });
+    },
+    error: (err) => {
+      console.error('Error adding inventory item:', err);
+      this.snack.open('Failed to add item', 'OK', { duration: 3000 });
+    }
+  });
+  }
+
+    /** --- Edit Dialog --- */
+    openEditDialog(item: PictoInventory) {
     const dialogRef = this.dialog.open(InventoryEditDialogComponent, {
       width: '500px',
       disableClose: true,
       data: { item }
     });
-    
+
     dialogRef.afterClosed().subscribe(result => {
+      // Only run if user actually submitted changes (not cancel)
       if (result) {
         this.updateItem(item.itemId, result);
       }
     });
   }
 
+  /** --- Edit Button Handler --- */
+  editSelectedItem() {
+    const selectedItems = this.getSelectedItems();
+
+    if (!selectedItems.length) {
+      this.snack.open('Please select an item to edit', 'OK', { duration: 3000 });
+      return;
+    }
+
+    if (selectedItems.length > 1) {
+      this.snack.open('Please select only one item to edit', 'OK', { duration: 3000 });
+      return;
+    }
+
+    // Pass the single selected item to the edit dialog
+    this.openEditDialog(selectedItems[0]);
+  }
+
   private updateItem(itemId: number, updatedData: any) {
-    const updatedItem: PictoInventory = {
-      ...updatedData,
-      itemId: itemId,
-      dateAdded: this.dataSource().find(i => i.itemId === itemId)?.dateAdded || new Date().toISOString()
-    };
-    
-    this.dataSource.set(this.dataSource().map(i => i.itemId === itemId ? updatedItem : i));
-    this.originalDataSource = this.originalDataSource.map(i => i.itemId === itemId ? updatedItem : i);
-    this.snack.open('Item updated successfully', 'OK', { duration: 2000 });
+  if (!updatedData?.itemName?.trim()) {
+    this.snack.open('Item name is required', 'OK', { duration: 3000 });
+    return;
+  }
+
+  const updateRequest = {
+    itemId: itemId,
+    itemName: updatedData.itemName,       
+    serialNumber: updatedData.serialNumber || '',
+    description: updatedData.description || '',
+    category: updatedData.category || '',
+    quantity: updatedData.quantity,
+    unit: updatedData.unit || '',
+    location: updatedData.location || '',
+    status: updatedData.status || 'Available'
+  };
+
+  this.inventoryService.updateInventory(itemId, updateRequest).subscribe({
+    next: (updatedItem) => {
+      // Merge updatedItem with existing item to preserve other properties (e.g., selected)
+      this.dataSource.set(
+        this.dataSource().map(i => i.itemId === itemId ? { ...i, ...updatedItem } : i)
+      );
+
+      this.originalDataSource = this.originalDataSource.map(i =>
+        i.itemId === itemId ? { ...i, ...updatedItem } : i
+      );
+
+      this.snack.open('Item updated successfully', 'OK', { duration: 2000 });
+    },
+    error: (err) => {
+      console.error('Error updating inventory item:', err);
+      this.snack.open('Failed to update item', 'OK', { duration: 3000 });
+    }
+  });
   }
 
   /** --- Delete Dialog --- */
-  openDeleteDialog(item: PictoInventory) {
-    const dialogRef = this.dialog.open(InventoryDeleteDialogComponent, {
-      width: '400px',
-      data: { 
-        item: {
-          id: item.itemId,
-          name: item.itemName,
-          serial_no: item.serialNumber
-        }
+  openDeleteDialog(items: PictoInventory[] | null) {
+  if (!items || !items.length) return;
+
+  const isBulk = items.length > 1;
+
+  const dialogRef = this.dialog.open(InventoryDeleteDialogComponent, {
+    width: '400px',
+    data: { items, isBulk }
+  });
+
+  dialogRef.afterClosed().subscribe(result => {
+    if (result) {
+      if (isBulk) {
+        this.deleteSelected();
+      } else {
+        this.deleteItem(items[0].itemId);
       }
-    });
-    
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.deleteItem(item.itemId);
-      }
-    });
+    }
+  });
   }
 
   private deleteItem(itemId: number) {
-    this.dataSource.set(this.dataSource().filter(i => i.itemId !== itemId));
-    this.originalDataSource = this.originalDataSource.filter(i => i.itemId !== itemId);
-    this.snack.open('Item deleted successfully', 'OK', { duration: 2000 });
+  if (!itemId) {
+    this.snack.open('Invalid item ID', 'OK', { duration: 3000 });
+    return;
   }
 
-  /** --- Bulk Delete --- */
-  deleteSelected() {
-    const selected = this.dataSource().filter(i => i.selected);
-    if (selected.length === 0) {
-      this.snack.open('No items selected', 'OK', { duration: 2000 });
-      return;
+  this.inventoryService.deleteInventory(itemId).subscribe({
+    next: () => {
+      this.dataSource.set(this.dataSource().filter(i => i.itemId !== itemId));
+      this.originalDataSource = this.originalDataSource.filter(i => i.itemId !== itemId);
+      this.snack.open('Item deleted successfully', 'OK', { duration: 2000 });
+    },
+    error: err => {
+      console.error('Error deleting inventory item:', err);
+      this.snack.open('Failed to delete item. Please try again.', 'OK', { duration: 3000 });
     }
-    
-    if (!confirm(`Delete ${selected.length} selected item(s)?`)) return;
-    
-    this.dataSource.set(this.dataSource().filter(i => !i.selected));
-    this.originalDataSource = this.originalDataSource.filter(i => !selected.some(s => s.itemId === i.itemId));
-    this.snack.open('Selected items deleted', 'OK', { duration: 2000 });
+  });
+  }
+
+  private deleteSelected() {
+  const selected = this.dataSource().filter(i => i.selected);
+  if (!selected.length) {
+    this.snack.open('No items selected for deletion', 'OK', { duration: 3000 });
+    return;
+  }
+
+  const ids = selected.map(i => i.itemId);
+
+  this.inventoryService.softDeleteInventoryBulk(ids).subscribe({
+    next: () => {
+      this.dataSource.set(this.dataSource().filter(i => !i.selected));
+      this.originalDataSource = this.originalDataSource.filter(i => !ids.includes(i.itemId));
+      this.snack.open(`${ids.length} item(s) deleted successfully`, 'OK', { duration: 2000 });
+    },
+    error: err => {
+      console.error('Error deleting selected items:', err);
+      this.snack.open('Failed to delete selected items. Please try again.', 'OK', { duration: 3000 });
+    }
+  });
   }
 
   /** --- Selection Methods --- */
@@ -496,6 +439,10 @@ export class Inventory implements OnInit, OnDestroy {
   
   getSelectedItem(): PictoInventory | null { 
     return this.dataSource().find(r => r.selected) || null; 
+  }
+
+  getSelectedItems(): PictoInventory[] {
+    return this.dataSource().filter(r => r.selected);
   }
 
   /** --- Export CSV --- */

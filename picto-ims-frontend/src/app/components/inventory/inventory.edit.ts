@@ -24,7 +24,6 @@ import { MatSelectModule } from '@angular/material/select';
   template: `
     <div class="dialog-container">
       <h2 mat-dialog-title class="dialog-title">
-        <mat-icon class="title-icon">edit</mat-icon>
         Edit Item
       </h2>
 
@@ -79,11 +78,9 @@ import { MatSelectModule } from '@angular/material/select';
 
         <div class="dialog-actions">
           <button mat-stroked-button type="button" (click)="close()" class="cancel-btn">
-            <mat-icon>close</mat-icon>
             Cancel
           </button>
           <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid" class="submit-btn">
-            <mat-icon>save</mat-icon>
             Save Changes
           </button>
         </div>
@@ -166,9 +163,19 @@ export class InventoryEditDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.data?.item) {
-      this.form.patchValue(this.data.item);
-    }
+  if (this.data?.item) {
+    const item = this.data.item;
+    this.form.patchValue({
+      itemName: item.itemName,
+      serialNumber: item.serialNumber,
+      description: item.description,
+      category: item.category,
+      quantity: item.quantity,
+      unit: item.unit,
+      location: item.location,
+      status: item.status
+    });
+  }
   }
 
   submit(): void {

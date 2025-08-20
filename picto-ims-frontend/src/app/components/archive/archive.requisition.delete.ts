@@ -105,8 +105,8 @@ import { MatIconModule } from '@angular/material/icon';
     }
   `]
 })
-export class InventoryDeleteDialogComponent {
-  private dialogRef = inject(MatDialogRef<InventoryDeleteDialogComponent>);
+export class ArchiveRequisitionDeleteDialogComponent {
+  private dialogRef = inject(MatDialogRef<ArchiveRequisitionDeleteDialogComponent>);
   public data: any = inject(MAT_DIALOG_DATA);
 
   close(result: boolean): void { 

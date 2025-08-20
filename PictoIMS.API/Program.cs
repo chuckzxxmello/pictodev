@@ -63,7 +63,8 @@ builder.Services.AddControllers()
 // Add Swagger with JWT support
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
-{
+{   
+    c.EnableAnnotations();
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "PictoIMS API", Version = "v1" });
 
     var securityScheme = new OpenApiSecurityScheme

@@ -48,9 +48,16 @@ export interface UpdatePictoInventoryRequest extends CreatePictoInventoryRequest
 })
 export class InventoryService {
   private readonly API_BASE_URL = 'http://localhost:5265/api';
-  
-
   constructor(private http: HttpClient) {}
+
+  /** Soft delete a single inventory item */
+  softDeleteInventory(id: number): Observable<any> {
+    return this.http.delete(`${this.API_BASE_URL}/inventory/${id}/soft`);
+  }
+
+  softDeleteInventoryBulk(ids: number[]): Observable<any> {
+  return this.http.post(`${this.API_BASE_URL}/inventory/bulk-soft-delete`, ids);
+  }
 
   getAllInventory(): Observable<PictoInventory[]> {
     return this.http.get<PictoInventory[]>(`${this.API_BASE_URL}/inventory`);
@@ -92,5 +99,13 @@ export class InventoryService {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post(`${this.API_BASE_URL}/inventory/import`, formData);
+  }
+  getAllArchived(): Observable<PictoInventory[]> {
+    return this.http.get<PictoInventory[]>(`${this.API_BASE_URL}/inventory/archived`);
+  }
+
+  hardDeleteArchived(ids: number[]): Observable<any> {
+    // Replace the URL and logic with your actual API endpoint for hard delete
+    return this.http.post('/api/inventory/archive/hard-delete', { ids });
   }
 }

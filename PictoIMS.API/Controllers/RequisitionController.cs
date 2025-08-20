@@ -51,12 +51,12 @@ namespace PictoIMS.API.Controllers
         [ProducesResponseType(typeof(RequisitionForm), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetById(string id)
         {
             try
             {
-                if (id <= 0)
-                    return BadRequest(new ApiErrorResponse { Message = "Invalid ID", Detail = "ID must be greater than 0" });
+                if (string.IsNullOrWhiteSpace(id))
+                    return BadRequest(new ApiErrorResponse { Message = "Invalid ID", Detail = "ID must be a non-empty string" });
 
                 var form = await _service.GetByIdAsync(id);
                 if (form == null)
@@ -114,12 +114,12 @@ namespace PictoIMS.API.Controllers
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Put(int id, [FromBody] RequisitionForm form)
+        public async Task<IActionResult> Put(string id, [FromBody] RequisitionForm form)
         {
             try
             {
-                if (id <= 0)
-                    return BadRequest(new ApiErrorResponse { Message = "Invalid ID", Detail = "ID must be greater than 0" });
+                if (string.IsNullOrWhiteSpace(id))
+                    return BadRequest(new ApiErrorResponse { Message = "Invalid ID", Detail = "ID must be a non-empty string" });
 
                 if (form == null)
                     return BadRequest(new ApiErrorResponse { Message = "Invalid input", Detail = "Requisition form data is required" });
@@ -131,7 +131,7 @@ namespace PictoIMS.API.Controllers
                         Detail = string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage))
                     });
 
-                form.RfId = id; // Ensure the ID matches
+                form.RfId = id; // match route ID
                 var updated = await _service.UpdateAsync(id, form);
                 if (!updated)
                     return NotFound(new ApiErrorResponse { Message = "Requisition data not found", Detail = $"No requisition form found with ID {id} to update" });
@@ -155,15 +155,15 @@ namespace PictoIMS.API.Controllers
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Delete(int id, [FromBody] ArchiveRequest? request)
+        public async Task<IActionResult> Delete(string id, [FromBody] ArchiveRequest? request)
         {
             string reason = request?.Reason ?? "Archived via API";
             string archivedBy = request?.ArchivedBy ?? "system";
 
             try
             {
-                if (id <= 0)
-                    return BadRequest(new ApiErrorResponse { Message = "Invalid ID", Detail = "ID must be greater than 0" });
+                if (string.IsNullOrWhiteSpace(id))
+                    return BadRequest(new ApiErrorResponse { Message = "Invalid ID", Detail = "ID must be a non-empty string" });
 
                 var deleted = await _service.SoftDeleteAsync(id, reason, archivedBy);
                 if (!deleted)
@@ -192,12 +192,12 @@ namespace PictoIMS.API.Controllers
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DeleteArchived(int id)
+        public async Task<IActionResult> DeleteArchived(string id)   // <-- string now
         {
             try
             {
-                if (id <= 0)
-                    return BadRequest(new ApiErrorResponse { Message = "Invalid ID", Detail = "ID must be greater than 0" });
+                if (string.IsNullOrWhiteSpace(id))
+                    return BadRequest(new ApiErrorResponse { Message = "Invalid ID", Detail = "ID must be a non-empty string" });
 
                 var deleted = await _service.HardDeleteAsync(id);
                 if (!deleted)
@@ -219,7 +219,6 @@ namespace PictoIMS.API.Controllers
                 });
             }
         }
-
         // Get all archived requisition forms
         [HttpGet("archive")]
         [ProducesResponseType(typeof(List<RequisitionArchive>), StatusCodes.Status200OK)]
@@ -242,18 +241,53 @@ namespace PictoIMS.API.Controllers
             }
         }
 
+        [HttpDelete("bulk")]
+        [ProducesResponseType(typeof(ApiSuccessResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DeleteBulk([FromBody] List<string> ids)
+        {
+            if (ids == null || !ids.Any())
+                return BadRequest(new ApiErrorResponse { Message = "Invalid input", Detail = "At least one ID is required" });
+
+            try
+            {
+                int deletedCount = 0;
+                foreach (var id in ids)
+                {
+                    var deleted = await _service.SoftDeleteAsync(id, "Bulk delete", "system");
+                    if (deleted) deletedCount++;
+                }
+
+                return Ok(new ApiSuccessResponse
+                {
+                    Message = "Bulk delete completed",
+                    Detail = $"{deletedCount} out of {ids.Count} requisition(s) archived successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during bulk delete");
+                return StatusCode(500, new ApiErrorResponse
+                {
+                    Message = "An error occurred while bulk deleting requisition forms",
+                    Detail = ex.Message
+                });
+            }
+        }
+
         // Get a specific archived requisition form by ID
         [HttpGet("archive/{id}")]
         [ProducesResponseType(typeof(RequisitionArchive), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetArchivedById(int id)
+        public async Task<IActionResult> GetArchivedById(string id)   // <-- string now
         {
             try
             {
-                if (id <= 0)
-                    return BadRequest(new ApiErrorResponse { Message = "Invalid ID", Detail = "ID must be greater than 0" });
+                if (string.IsNullOrWhiteSpace(id))
+                    return BadRequest(new ApiErrorResponse { Message = "Invalid ID", Detail = "ID must be a non-empty string" });
 
                 var archivedForm = await _service.GetArchivedByIdAsync(id);
                 if (archivedForm == null)

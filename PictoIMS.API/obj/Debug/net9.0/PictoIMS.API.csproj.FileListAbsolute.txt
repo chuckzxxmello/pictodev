@@ -862,6 +862,7 @@ C:\Users\Jeff\Desktop\New folder (2)\ims\pictodev\PictoIMS.API\bin\Debug\net9.0\
 C:\Users\Jeff\Desktop\New folder (2)\ims\pictodev\PictoIMS.API\bin\Debug\net9.0\Mono.TextTemplating.dll
 C:\Users\Jeff\Desktop\New folder (2)\ims\pictodev\PictoIMS.API\bin\Debug\net9.0\Npgsql.dll
 C:\Users\Jeff\Desktop\New folder (2)\ims\pictodev\PictoIMS.API\bin\Debug\net9.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
+C:\Users\Jeff\Desktop\New folder (2)\ims\pictodev\PictoIMS.API\bin\Debug\net9.0\Swashbuckle.AspNetCore.Annotations.dll
 C:\Users\Jeff\Desktop\New folder (2)\ims\pictodev\PictoIMS.API\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
 C:\Users\Jeff\Desktop\New folder (2)\ims\pictodev\PictoIMS.API\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 C:\Users\Jeff\Desktop\New folder (2)\ims\pictodev\PictoIMS.API\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll

@@ -28,7 +28,7 @@ namespace PictoIMS.API.Services
                 .ToListAsync();
         }
 
-        public async Task<RequisitionForm?> GetByIdAsync(int id)
+        public async Task<RequisitionForm?> GetByIdAsync(string id)
         {
             // All dates are handled in UTC.
             return await _context.RequisitionForms
@@ -55,7 +55,7 @@ namespace PictoIMS.API.Services
             return form;
         }
 
-        public async Task<bool> UpdateAsync(int id, RequisitionForm form)
+        public async Task<bool> UpdateAsync(string id, RequisitionForm form)
         {
             var existing = await _context.RequisitionForms
                 .Where(f => f.RfId == id && !f.IsArchived)
@@ -99,7 +99,7 @@ namespace PictoIMS.API.Services
             }
         }
 
-        public async Task<bool> SoftDeleteAsync(int id, string reason = "Archived", string archivedBy = "system")
+        public async Task<bool> SoftDeleteAsync(string id, string reason = "Archived", string archivedBy = "system")
         {
             var form = await _context.RequisitionForms
                 .Where(f => f.RfId == id && !f.IsArchived)
@@ -153,7 +153,60 @@ namespace PictoIMS.API.Services
             }
         }
 
-        public async Task<bool> HardDeleteAsync(int id)
+        public async Task<int> SoftDeleteBulkAsync(List<string> ids, string reason = "Archiving / Auditing", string archivedBy = "database admin")
+        {
+            if (ids == null || !ids.Any())
+                return 0;
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var forms = await _context.RequisitionForms
+                    .Where(f => ids.Contains(f.RfId) && !f.IsArchived)
+                    .ToListAsync();
+
+                var archives = forms.Select(f => new RequisitionArchive
+                {
+                    RfId = f.RfId,
+                    RequesterName = f.RequesterName,
+                    RequesterPosition = f.RequesterPosition,
+                    Department = f.Department,
+                    Purpose = f.Purpose,
+                    DateRequested = f.DateRequested,
+                    CheckedByName = f.CheckedByName,
+                    CheckedByPosition = f.CheckedByPosition,
+                    CheckedByDate = f.CheckedByDate,
+                    ApprovedByName = f.ApprovedByName,
+                    ApprovedByPosition = f.ApprovedByPosition,
+                    ApprovedByDate = f.ApprovedByDate,
+                    IssuedByName = f.IssuedByName,
+                    IssuedByPosition = f.IssuedByPosition,
+                    IssuedByDate = f.IssuedByDate,
+                    ReceivedByName = f.ReceivedByName,
+                    ReceivedByPosition = f.ReceivedByPosition,
+                    ReceivedByDate = f.ReceivedByDate,
+                    IsArchived = true,
+                    ArchivedAt = DateTime.UtcNow,
+                    ArchivedReason = reason,
+                    ArchivedBy = archivedBy
+                }).ToList();
+
+                _context.RequisitionArchives.AddRange(archives);
+                _context.RequisitionForms.RemoveRange(forms);
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return forms.Count;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<bool> HardDeleteAsync(string id)
         {
             var archive = await _context.RequisitionArchives
                 .FirstOrDefaultAsync(a => a.RfId == id);
@@ -180,16 +233,32 @@ namespace PictoIMS.API.Services
 
         public async Task<List<RequisitionArchive>> GetAllArchivedAsync()
         {
-            // All dates are handled in UTC.
             return await _context.RequisitionArchives
                 .OrderByDescending(a => a.DateRequested)
                 .ToListAsync();
         }
 
-        public async Task<RequisitionArchive?> GetArchivedByIdAsync(int id)
+        public async Task<RequisitionArchive?> GetArchivedByIdAsync(string id)
         {
             return await _context.RequisitionArchives
                 .FirstOrDefaultAsync(a => a.RfId == id);
+        }
+
+
+        public async Task<List<RequisitionArchive>> SearchArchivedAsync(DateTime? start, DateTime? end, string? keyword)
+        {
+            var query = _context.RequisitionArchives.AsQueryable();
+
+            if (start.HasValue)
+                query = query.Where(a => a.ArchivedAt >= start.Value);
+
+            if (end.HasValue)
+                query = query.Where(a => a.ArchivedAt <= end.Value);
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+                query = query.Where(a => a.RequesterName.Contains(keyword) || a.Purpose.Contains(keyword));
+
+            return await query.OrderByDescending(a => a.ArchivedAt).ToListAsync();
         }
 
     }

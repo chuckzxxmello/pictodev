@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "Et0LI3F+dHo=",
+  "dgSpecHash": "O/gUaSlNeoU=",
   "success": true,
   "projectFilePath": "C:\\Users\\Jeff\\Desktop\\New folder (2)\\ims\\pictodev\\PictoIMS.API\\PictoIMS.API.csproj",
   "expectedPackageFiles": [
@@ -61,6 +61,7 @@
     "C:\\Users\\Jeff\\.nuget\\packages\\npgsql\\9.0.3\\npgsql.9.0.3.nupkg.sha512",
     "C:\\Users\\Jeff\\.nuget\\packages\\npgsql.entityframeworkcore.postgresql\\9.0.4\\npgsql.entityframeworkcore.postgresql.9.0.4.nupkg.sha512",
     "C:\\Users\\Jeff\\.nuget\\packages\\swashbuckle.aspnetcore\\9.0.3\\swashbuckle.aspnetcore.9.0.3.nupkg.sha512",
+    "C:\\Users\\Jeff\\.nuget\\packages\\swashbuckle.aspnetcore.annotations\\9.0.3\\swashbuckle.aspnetcore.annotations.9.0.3.nupkg.sha512",
     "C:\\Users\\Jeff\\.nuget\\packages\\swashbuckle.aspnetcore.swagger\\9.0.3\\swashbuckle.aspnetcore.swagger.9.0.3.nupkg.sha512",
     "C:\\Users\\Jeff\\.nuget\\packages\\swashbuckle.aspnetcore.swaggergen\\9.0.3\\swashbuckle.aspnetcore.swaggergen.9.0.3.nupkg.sha512",
     "C:\\Users\\Jeff\\.nuget\\packages\\swashbuckle.aspnetcore.swaggerui\\9.0.3\\swashbuckle.aspnetcore.swaggerui.9.0.3.nupkg.sha512",

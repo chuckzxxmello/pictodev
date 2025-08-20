@@ -24,7 +24,6 @@ import { MatSelectModule } from '@angular/material/select';
   template: `
     <div class="dialog-container">
       <h2 mat-dialog-title class="dialog-title">
-        <mat-icon class="title-icon">add</mat-icon>
         Add New Item
       </h2>
 
@@ -79,11 +78,9 @@ import { MatSelectModule } from '@angular/material/select';
 
         <div class="dialog-actions">
           <button mat-stroked-button type="button" (click)="close()" class="cancel-btn">
-            <mat-icon>close</mat-icon>
             Cancel
           </button>
           <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid" class="submit-btn">
-            <mat-icon>add</mat-icon>
             Add Item
           </button>
         </div>

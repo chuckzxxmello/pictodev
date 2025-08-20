@@ -23,10 +23,10 @@ export class SidebarComponent {
   menuLinks = [
     { path: '/dashboard', label: 'Dashboard', icon: 'assets/icons/home.png' },
     { path: '/inventory', label: 'Inventory', icon: 'assets/icons/inventory.png' },
-    { path: '/requests', label: 'Requisition Form', icon: 'assets/icons/form.png' },
-    { path: '/requisitions', label: 'Requisition Slip', icon: 'assets/icons/slip.png' },
-    { path: '/transfers', label: 'Transfer In', icon: 'assets/icons/in.png' },
-    { path: '/repairs', label: 'Transfer Out', icon: 'assets/icons/out.png' },
+   // { path: '/requests', label: 'Requests Form', icon: 'assets/icons/form.png' },
+    { path: '/requisitions', label: 'Requisitions', icon: 'assets/icons/slip.png' },
+   // { path: '/transfers', label: 'Transfer In', icon: 'assets/icons/in.png' },
+   // { path: '/repairs', label: 'Transfer Out', icon: 'assets/icons/out.png' },
     { path: '/archive', label: 'Archive', icon: 'assets/icons/archive.png' }
   ];
 

@@ -36,53 +36,6 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: pc_repair_tracker; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.pc_repair_tracker (
-    repair_id integer NOT NULL,
-    request_form_id integer,
-    pc_serial_no character varying(50),
-    device_type character varying(50),
-    issue_reported text,
-    diagnosis text,
-    repair_status character varying(20),
-    assigned_it_name character varying(100),
-    assigned_it_position character varying(100),
-    date_received date,
-    date_started date,
-    date_completed date,
-    parts_used text,
-    repair_notes text,
-    CONSTRAINT pc_repair_tracker_repair_status_check CHECK (((repair_status)::text = ANY (ARRAY[('Pending'::character varying)::text, ('In Progress'::character varying)::text, ('Completed'::character varying)::text, ('Returned'::character varying)::text])))
-);
-
-
-ALTER TABLE public.pc_repair_tracker OWNER TO postgres;
-
---
--- Name: pc_repair_tracker_repair_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.pc_repair_tracker_repair_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.pc_repair_tracker_repair_id_seq OWNER TO postgres;
-
---
--- Name: pc_repair_tracker_repair_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.pc_repair_tracker_repair_id_seq OWNED BY public.pc_repair_tracker.repair_id;
-
-
---
 -- Name: picto_archive; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -169,6 +122,102 @@ ALTER SEQUENCE public.picto_inventory_item_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE public.picto_inventory_item_id_seq OWNED BY public.picto_inventory.item_id;
+
+
+--
+-- Name: repair_log; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.repair_log (
+    log_id integer NOT NULL,
+    status_id integer,
+    request_form_id integer,
+    item_id integer,
+    device_type character varying(50),
+    issue_reported text,
+    diagnosis text,
+    final_status character varying(50),
+    assigned_to_name character varying(100),
+    assigned_to_position character varying(50),
+    date_received timestamp without time zone,
+    date_started timestamp without time zone,
+    date_completed timestamp without time zone,
+    location_from character varying(100),
+    location_to character varying(100),
+    parts_used text,
+    repair_notes text,
+    archived_at timestamp without time zone DEFAULT now(),
+    archived_by character varying(100)
+);
+
+
+ALTER TABLE public.repair_log OWNER TO postgres;
+
+--
+-- Name: repair_log_log_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.repair_log_log_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.repair_log_log_id_seq OWNER TO postgres;
+
+--
+-- Name: repair_log_log_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.repair_log_log_id_seq OWNED BY public.repair_log.log_id;
+
+
+--
+-- Name: repair_status; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.repair_status (
+    status_id integer NOT NULL,
+    request_form_id integer,
+    item_id integer,
+    device_type character varying(50),
+    issue_reported text,
+    current_status character varying(50),
+    assigned_to_name character varying(100),
+    assigned_to_position character varying(50),
+    date_received timestamp without time zone,
+    date_started timestamp without time zone,
+    location_from character varying(100),
+    location_to character varying(100),
+    notes text
+);
+
+
+ALTER TABLE public.repair_status OWNER TO postgres;
+
+--
+-- Name: repair_status_status_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.repair_status_status_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.repair_status_status_id_seq OWNER TO postgres;
+
+--
+-- Name: repair_status_status_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.repair_status_status_id_seq OWNED BY public.repair_status.status_id;
 
 
 --
@@ -356,86 +405,6 @@ ALTER SEQUENCE public.requisition_forms_rf_id_seq OWNED BY public.requisition_fo
 
 
 --
--- Name: transfer_in; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.transfer_in (
-    transfer_in_id integer NOT NULL,
-    item_id integer,
-    quantity integer NOT NULL,
-    from_location character varying(100),
-    date_received timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    received_by_name character varying(100),
-    received_by_position character varying(100),
-    remarks text
-);
-
-
-ALTER TABLE public.transfer_in OWNER TO postgres;
-
---
--- Name: transfer_in_transfer_in_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.transfer_in_transfer_in_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.transfer_in_transfer_in_id_seq OWNER TO postgres;
-
---
--- Name: transfer_in_transfer_in_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.transfer_in_transfer_in_id_seq OWNED BY public.transfer_in.transfer_in_id;
-
-
---
--- Name: transfer_out; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.transfer_out (
-    transfer_out_id integer NOT NULL,
-    item_id integer,
-    quantity integer NOT NULL,
-    to_location character varying(100),
-    date_transferred timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    transferred_by_name character varying(100),
-    transferred_by_position character varying(100),
-    remarks text
-);
-
-
-ALTER TABLE public.transfer_out OWNER TO postgres;
-
---
--- Name: transfer_out_transfer_out_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.transfer_out_transfer_out_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.transfer_out_transfer_out_id_seq OWNER TO postgres;
-
---
--- Name: transfer_out_transfer_out_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.transfer_out_transfer_out_id_seq OWNED BY public.transfer_out.transfer_out_id;
-
-
---
 -- Name: users; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -477,13 +446,6 @@ ALTER SEQUENCE public.users_user_id_seq OWNED BY public.users.user_id;
 
 
 --
--- Name: pc_repair_tracker repair_id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.pc_repair_tracker ALTER COLUMN repair_id SET DEFAULT nextval('public.pc_repair_tracker_repair_id_seq'::regclass);
-
-
---
 -- Name: picto_archive archive_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -495,6 +457,20 @@ ALTER TABLE ONLY public.picto_archive ALTER COLUMN archive_id SET DEFAULT nextva
 --
 
 ALTER TABLE ONLY public.picto_inventory ALTER COLUMN item_id SET DEFAULT nextval('public.picto_inventory_item_id_seq'::regclass);
+
+
+--
+-- Name: repair_log log_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.repair_log ALTER COLUMN log_id SET DEFAULT nextval('public.repair_log_log_id_seq'::regclass);
+
+
+--
+-- Name: repair_status status_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.repair_status ALTER COLUMN status_id SET DEFAULT nextval('public.repair_status_status_id_seq'::regclass);
 
 
 --
@@ -519,33 +495,10 @@ ALTER TABLE ONLY public.requisition_forms ALTER COLUMN rf_id SET DEFAULT nextval
 
 
 --
--- Name: transfer_in transfer_in_id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.transfer_in ALTER COLUMN transfer_in_id SET DEFAULT nextval('public.transfer_in_transfer_in_id_seq'::regclass);
-
-
---
--- Name: transfer_out transfer_out_id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.transfer_out ALTER COLUMN transfer_out_id SET DEFAULT nextval('public.transfer_out_transfer_out_id_seq'::regclass);
-
-
---
 -- Name: users user_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.users ALTER COLUMN user_id SET DEFAULT nextval('public.users_user_id_seq'::regclass);
-
-
---
--- Data for Name: pc_repair_tracker; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.pc_repair_tracker (repair_id, request_form_id, pc_serial_no, device_type, issue_reported, diagnosis, repair_status, assigned_it_name, assigned_it_position, date_received, date_started, date_completed, parts_used, repair_notes) FROM stdin;
-2	1	SN-IT-2024-01	Desktop PC	PC not booting, beeping sounds	Faulty RAM module	Completed	Mark Reyes	IT Technician	2024-02-10	2024-02-11	2024-02-12	RAM 8GB DDR4, cleaned heatsink	Replaced faulty RAM, performed stress test
-\.
 
 
 --
@@ -554,6 +507,23 @@ COPY public.pc_repair_tracker (repair_id, request_form_id, pc_serial_no, device_
 
 COPY public.picto_archive (archive_id, item_id, item_name, description, category, quantity, unit, location, status, date_added, serial_number, archived_at, archived_reason, archived_by, original_item_id) FROM stdin;
 1	16	Laptop	LENOVO THINKPAD T14	Electronics	10	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-18 14:04:09.045104	COMPLETED	TINTIN	16
+3	101	Ergonomic Office Chair	Comfortable office chair with adjustable height and lumbar support	Office Furniture	15	pcs	Main Office	Available	2025-08-12 00:00:00	\N	2025-08-19 11:52:31.797439	Soft delete	System	101
+4	10	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	\N	\N	Available	2025-08-12 00:00:00	\N	2025-08-19 11:53:05.676358	Soft delete	System	10
+5	14	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 11:53:09.227896	Soft delete	System	14
+6	15	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 11:53:12.086302	Soft delete	System	15
+7	17	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 11:53:14.785938	Soft delete	System	17
+8	2	Laptop Updated	HP OMEN 17 TRANSCEND Updated	Electronics	15	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 12:08:31.820419	Bulk soft delete	System	2
+9	4	Office Desk	Wooden office desk	Office Furniture	10	pcs	Main Office	Available	2025-08-13 00:00:00	\N	2025-08-19 12:09:24.790658	Bulk soft delete	System	4
+10	5	Projector	HD projector for meetings	IT Equipment	5	pcs	Conference Room	Available	2025-08-13 00:00:00	\N	2025-08-19 12:09:24.791743	Bulk soft delete	System	5
+11	6	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 12:09:24.791817	Bulk soft delete	System	6
+12	11	Ergonomic Office Chair	Comfortable office chair	Office Furniture	15	pcs	Main Office	Available	2025-08-12 00:00:00	\N	2025-08-19 12:09:30.180411	Bulk soft delete	System	11
+13	7	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 12:09:30.181062	Bulk soft delete	System	7
+14	8	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-11 00:00:00	\N	2025-08-19 12:09:30.181289	Bulk soft delete	System	8
+15	9	Laptop	\N	Electronics	5	\N	\N	Available	2025-08-12 00:00:00	\N	2025-08-19 12:09:30.181444	Bulk soft delete	System	9
+16	21	WORKSTATION	HP Z5	Electronics	1	pcs	IT Office	Available	2025-08-11 00:00:00	\N	2025-08-19 12:09:30.181606	Bulk soft delete	System	21
+17	24	Laptop	LENOVO THINKPAD T14	Electronics	10	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 12:09:30.181764	Bulk soft delete	System	24
+18	29	aaaaa	fsdfsdf	dsfsdf	6	fsdfsd	fsdfsd	Available	2025-08-19 00:00:00	fsdfsdf	2025-08-19 12:41:53.273662	Bulk soft delete	System	29
+19	28	aaaaa	sdfsdfs	dsfsdf	1	sdfsdf	sfdsdf	Available	2025-08-19 00:00:00	aaaaa	2025-08-19 12:41:53.27487	Bulk soft delete	System	28
 \.
 
 
@@ -562,21 +532,24 @@ COPY public.picto_archive (archive_id, item_id, item_name, description, category
 --
 
 COPY public.picto_inventory (item_id, item_name, description, category, quantity, unit, location, status, date_added, serial_number) FROM stdin;
-101	Ergonomic Office Chair	Comfortable office chair with adjustable height and lumbar support	Office Furniture	15	pcs	Main Office	Available	2025-08-12	\N
-11	Ergonomic Office Chair	Comfortable office chair	Office Furniture	15	pcs	Main Office	Available	2025-08-12	\N
-4	Office Desk	Wooden office desk	Office Furniture	10	pcs	Main Office	Available	2025-08-13	\N
-5	Projector	HD projector for meetings	IT Equipment	5	pcs	Conference Room	Available	2025-08-13	\N
-6	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-12	\N
-7	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-12	\N
-8	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-11	\N
-9	Laptop	\N	Electronics	5	\N	\N	Available	2025-08-12	\N
-10	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	\N	\N	Available	2025-08-12	\N
-2	Laptop Updated	HP OMEN 17 TRANSCEND Updated	Electronics	15	pcs	IT Office	Available	2025-08-12	\N
-14	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12	\N
-15	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12	\N
-17	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12	\N
-21	WORKSTATION	HP Z5	Electronics	1	pcs	IT Office	Available	2025-08-11	\N
-24	Laptop	LENOVO THINKPAD T14	Electronics	10	pcs	IT Office	Available	2025-08-12	\N
+26	HP Omen 17 Transcend	gaming laptop	IT Supplies	1	pcs	PICTO Storage Room	Available	2025-08-19	OMN-TS-RND1
+27	HP Z5	desktop workstation	Electronics	1	pcs	PICTO Storage Room	Available	2025-08-19	HPZ5-RND2
+\.
+
+
+--
+-- Data for Name: repair_log; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.repair_log (log_id, status_id, request_form_id, item_id, device_type, issue_reported, diagnosis, final_status, assigned_to_name, assigned_to_position, date_received, date_started, date_completed, location_from, location_to, parts_used, repair_notes, archived_at, archived_by) FROM stdin;
+\.
+
+
+--
+-- Data for Name: repair_status; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.repair_status (status_id, request_form_id, item_id, device_type, issue_reported, current_status, assigned_to_name, assigned_to_position, date_received, date_started, location_from, location_to, notes) FROM stdin;
 \.
 
 
@@ -612,32 +585,10 @@ COPY public.requisition_archive (rf_id, requester_name, requester_position, depa
 --
 
 COPY public.requisition_forms (rf_id, requester_name, requester_position, department, purpose, date_requested, checked_by_name, checked_by_position, checked_by_date, approved_by_name, approved_by_position, approved_by_date, issued_by_name, issued_by_position, issued_by_date, received_by_name, received_by_position, received_by_date, is_archived) FROM stdin;
-\.
-
-
---
--- Data for Name: transfer_in; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.transfer_in (transfer_in_id, item_id, quantity, from_location, date_received, received_by_name, received_by_position, remarks) FROM stdin;
-1	101	10	Warehouse A	2025-07-15 02:30:00	Alice Mendoza	Inventory Manager	Received from main supplier
-3	11	10	Warehouse A	2025-07-15 02:30:00	Alice Mendoza	Inventory Manager	Received from main supplier
-4	5	5	Warehouse B	2025-08-10 02:00:00	John Doe	Inventory Clerk	New stock arrival
-5	7	10	Warehouse	2025-08-10 02:30:00	John Doe	Inventory Manager	Restock
-6	8	10	Warehouse	2025-08-09 17:00:00	John Doe	Inventory Manager	Restock
-\.
-
-
---
--- Data for Name: transfer_out; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.transfer_out (transfer_out_id, item_id, quantity, to_location, date_transferred, transferred_by_name, transferred_by_position, remarks) FROM stdin;
-1	101	5	Branch Office	2025-08-01 07:45:00	Bob Santos	Logistics Coordinator	Transferred for branch setup
-2	11	5	Branch Office	2025-08-01 07:45:00	Bob Santos	Logistics Coordinator	Transferred for branch setup
-3	5	2	Branch Office	2025-08-12 07:00:00	Jane Smith	Logistics Manager	Loan for presentation
-4	7	5	Sales Dept	2025-08-15 07:00:00	Jane Smith	Logistics Officer	Transferred for office use
-5	8	5	Sales Dept	2025-08-14 17:00:00	Jane Smith	Logistics Officer	Transferred for office use
+6	Alice Santos	Staff	IT	Purchase of monitors	2025-08-09 00:00:00	John Reyes	Supervisor	2025-08-10 00:00:00	Maria Cruz	Manager	2025-08-11 00:00:00	Paul Tan	Warehouse	2025-08-12 00:00:00	Luis Gomez	Staff	2025-08-13 00:00:00	f
+7	Benito Lim	Engineer	Maintenance	Replacement of tools	2025-08-04 00:00:00	Rosa Dela Cruz	Supervisor	2025-08-05 00:00:00	Victor Ong	Manager	2025-08-06 00:00:00	Carla Reyes	Warehouse	2025-08-07 00:00:00	Ramon Santos	Engineer	2025-08-08 00:00:00	f
+8	Carla Diaz	Coordinator	HR	Office supplies	2025-08-12 00:00:00	Henry Lopez	Supervisor	2025-08-13 00:00:00	Angela Tan	Manager	2025-08-14 00:00:00	Monica Cruz	Warehouse	2025-08-15 00:00:00	Jose Perez	Coordinator	2025-08-16 00:00:00	f
+9	David Yu	Staff	Finance	Stationery requisition	2025-07-30 00:00:00	Anna Lim	Supervisor	2025-07-31 00:00:00	Carlos Reyes	Manager	2025-08-01 00:00:00	Liza Gomez	Warehouse	2025-08-02 00:00:00	Miguel Santos	Staff	2025-08-03 00:00:00	t
 \.
 
 
@@ -653,24 +604,31 @@ COPY public.users (user_id, username, password_hash, full_name, role, email, pho
 
 
 --
--- Name: pc_repair_tracker_repair_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.pc_repair_tracker_repair_id_seq', 2, true);
-
-
---
 -- Name: picto_archive_archive_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.picto_archive_archive_id_seq', 2, true);
+SELECT pg_catalog.setval('public.picto_archive_archive_id_seq', 19, true);
 
 
 --
 -- Name: picto_inventory_item_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.picto_inventory_item_id_seq', 25, true);
+SELECT pg_catalog.setval('public.picto_inventory_item_id_seq', 29, true);
+
+
+--
+-- Name: repair_log_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.repair_log_log_id_seq', 1, false);
+
+
+--
+-- Name: repair_status_status_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.repair_status_status_id_seq', 1, false);
 
 
 --
@@ -691,21 +649,7 @@ SELECT pg_catalog.setval('public.request_forms_req_id_seq', 2, true);
 -- Name: requisition_forms_rf_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.requisition_forms_rf_id_seq', 5, true);
-
-
---
--- Name: transfer_in_transfer_in_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.transfer_in_transfer_in_id_seq', 6, true);
-
-
---
--- Name: transfer_out_transfer_out_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.transfer_out_transfer_out_id_seq', 5, true);
+SELECT pg_catalog.setval('public.requisition_forms_rf_id_seq', 9, true);
 
 
 --
@@ -713,14 +657,6 @@ SELECT pg_catalog.setval('public.transfer_out_transfer_out_id_seq', 5, true);
 --
 
 SELECT pg_catalog.setval('public.users_user_id_seq', 18, true);
-
-
---
--- Name: pc_repair_tracker pc_repair_tracker_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.pc_repair_tracker
-    ADD CONSTRAINT pc_repair_tracker_pkey PRIMARY KEY (repair_id);
 
 
 --
@@ -748,6 +684,22 @@ ALTER TABLE ONLY public.requisition_archive
 
 
 --
+-- Name: repair_log repair_log_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.repair_log
+    ADD CONSTRAINT repair_log_pkey PRIMARY KEY (log_id);
+
+
+--
+-- Name: repair_status repair_status_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.repair_status
+    ADD CONSTRAINT repair_status_pkey PRIMARY KEY (status_id);
+
+
+--
 -- Name: request_archive request_forms_archive_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -772,22 +724,6 @@ ALTER TABLE ONLY public.requisition_forms
 
 
 --
--- Name: transfer_in transfer_in_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.transfer_in
-    ADD CONSTRAINT transfer_in_pkey PRIMARY KEY (transfer_in_id);
-
-
---
--- Name: transfer_out transfer_out_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.transfer_out
-    ADD CONSTRAINT transfer_out_pkey PRIMARY KEY (transfer_out_id);
-
-
---
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -804,27 +740,19 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: pc_repair_tracker pc_repair_tracker_request_form_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: repair_status repair_status_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.pc_repair_tracker
-    ADD CONSTRAINT pc_repair_tracker_request_form_id_fkey FOREIGN KEY (request_form_id) REFERENCES public.request_forms(req_id) ON DELETE CASCADE;
-
-
---
--- Name: transfer_in transfer_in_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.transfer_in
-    ADD CONSTRAINT transfer_in_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.picto_inventory(item_id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.repair_status
+    ADD CONSTRAINT repair_status_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.picto_inventory(item_id);
 
 
 --
--- Name: transfer_out transfer_out_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: repair_status repair_status_request_form_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.transfer_out
-    ADD CONSTRAINT transfer_out_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.picto_inventory(item_id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.repair_status
+    ADD CONSTRAINT repair_status_request_form_id_fkey FOREIGN KEY (request_form_id) REFERENCES public.request_forms(req_id);
 
 
 --

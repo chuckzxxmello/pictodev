@@ -1,5 +1,5 @@
 export interface User {
-  userId: number;
+  userId: string;
   username: string;
   fullName: string;
   role: string;
@@ -46,13 +46,13 @@ export interface UpdateInventoryRequest extends CreateInventoryRequest {
   itemId: number;
 }
 
-export interface RequisitionForm {
+export interface Requisition {
   rfId: number;
   requesterName: string;
-  requesterPosition?: string;
-  department?: string;
-  purpose?: string;
-  dateRequested: string;
+  requesterPosition: string;
+  department: string;
+  purpose: string;
+  dateRequested?: string;
   checkedByName?: string;
   checkedByPosition?: string;
   checkedByDate?: string;
@@ -65,6 +65,8 @@ export interface RequisitionForm {
   receivedByName?: string;
   receivedByPosition?: string;
   receivedByDate?: string;
+  isArchived: boolean;
+  selected?: boolean;
 }
 
 export interface RequestForm {

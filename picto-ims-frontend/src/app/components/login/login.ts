@@ -15,7 +15,7 @@ template: `
       <div class="login-container">
         <div class="login-card"
         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-          <div class="logo-placeholder">LOGO</div>
+          <div class="logo-placeholder"><img src="assets/images/sidebar-logo.png" class="logo-img"/></div>
 
           <h2 class="system-title">PICTO Inventory Management System</h2>
 
@@ -75,6 +75,12 @@ styles: [`
     font-family: 'Montserrat';
   }
 
+  .logo-img {
+    width: 150%;
+    height: auto;
+    border-radius: 50%;
+  }
+
   .login-page {
     display: flex;
     justify-content: center; /* centers horizontally */
@@ -99,7 +105,7 @@ styles: [`
   .logo-placeholder {
     width: 70px;
     height: 70px;
-    background: black;
+    background: white;
     color: white;
     border-radius: 50%;
     display: flex;

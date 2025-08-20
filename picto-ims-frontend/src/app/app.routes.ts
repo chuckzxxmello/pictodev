@@ -27,6 +27,12 @@ export const routes: Routes = [
       import('./components/requisitions/requisitions').then(m => m.Requisitions)
   },
   {
+    path: 'archive',
+    loadComponent: () =>
+      import('./components/archive/archive').then(m => m.Archive)
+  }
+  /*
+  {
     path: 'requests',
     loadComponent: () =>
       import('./components/requests/requests').then(m => m.Requests)
@@ -40,10 +46,5 @@ export const routes: Routes = [
     path: 'repairs',
     loadComponent: () =>
       import('./components/repairs/repairs').then(m => m.Repairs)
-  },
-  {
-    path: 'archive',
-    loadComponent: () =>
-      import('./components/archive/archive').then(m => m.Archive)
-  }
+  }*/
 ];

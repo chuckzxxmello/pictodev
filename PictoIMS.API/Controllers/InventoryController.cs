@@ -103,6 +103,19 @@ namespace PictoIMS.API.Controllers
             }
         }
 
+        [HttpPost("bulk-soft-delete")]
+        public async Task<IActionResult> BulkSoftDelete([FromBody] int[] ids)
+        {
+            if (ids == null || ids.Length == 0)
+                return BadRequest("No IDs provided.");
+
+            var result = await _service.SoftDeleteBulkAsync(ids);
+
+            if (!result) return StatusCode(500, "Failed to delete items.");
+
+            return Ok(new { message = $"{ids.Length} items deleted successfully." });
+        }
+
         [HttpDelete("archive/{id}")]
         public async Task<IActionResult> HardDelete(int id)
         {
