@@ -1,118 +1,221 @@
 <img src="https://readme-typing-svg.herokuapp.com?font=Anaheim&size=32&duration=3000&pause=2000&color=1F51FF&width=1000&lines=PICTOIMS;Inventory+Management+System" alt="Typing SVG" />
 
-PICTOIMS aims to digitize and centralize all supply and asset tracking for government facility operations.
+## Installation Guide
 
-## Setup
+### 1. Prerequisites (Download & Install)
 
-.NET 9 Backend
+Ensure the following are installed on your system:
 
-1. cd C:\Users\User\Downloads\pictodev\PictoIMS.API
-2. dotnet restore
-3. dotnet clean
-4. dotnet run
+- **Node.js**: Version **20+**.
+  - To check your version: `node -v`
 
+- **Angular CLI**:
+  - To check your version: `ng version`
+  - If not installed globally, it will be installed later.
 
-ps.
-- dotnet ef migrations add pictodb
-- psql -U postgres -c "CREATE DATABASE pictodb;"
-- psql -U postgres -d pictodb -f "C:\Users\User\Downloads\pictodb\pictodb.sql" - actual location of the sql file
+- **.NET 9 SDK**: Version **9+**.
+  - To check your version: `dotnet --version`
 
-Angular Frontend
+- **PostgreSQL 17.5**:
+  - Install from the [official PostgreSQL website](https://www.postgresql.org/download/windows/).
+  - **During installation, set the default username to postgres and password to admin123#!**.
 
-1. cd C:\Users\User\Downloads\pictodev\picto-ims-frontend
-2. npm install
-3. ng serve
+### 2. Get the Code
 
-ps.
-- npm install --legacy-peer-deps
+Open **CMD as Administrator** and choose your desired directory.
 
-## Core Objectives
-- Centralize all facility supply data in a secure PostgreSQL.
-- Modernize document and spreadsheet-based records and manual counting processes.
-- Track supply inventory, requisitions, usage, and procurement cycles.
-- Allow real-time updates, searching, and comprehensive reporting.
-- Enable role-based access (Admin & Users).
-- Comprehensive audit trail logging for all transactions and user interactions.
+- **Clone the repository**:
+  ```bash
+  git clone https://github.com/chuckzxxmello/pictodev.git
+  ```
 
-## Core Functions
-- **Dashboard** – Real-time inventory overview, stock alerts, recent requisitions.
-- **Supply Registry** – Complete CRUD operations for all supply items with categories.
-- **Stock Movements** – Detailed logging of all inventory transactions.
-- **Requisition System** – Staff request workflow with approval chains.
-- **Vendor Management** – Supplier information (Serial Number).
-- **Excel Integration** – Seamless import/export with validation and templates.
-- **Analytics Report Generator** – Analytics reports for stock, usage, and requisition.
-- **User Management** – Role-based access control and user administration. Change password and auth lock.
-- **Audit Trail** – Comprehensive logging of all system activities.
+- **Alternatively, Download ZIP**: Go to the [GitHub Online Repository](https://github.com/chuckzxxmello/pictodev), download the ZIP file, and extract it to your desired directory.
 
-## Tech Stack
-- **Frontend:** Razor Pages
-- **Backend:** ASP.NET 9 Core Web Application
-- **Database:** PostgreSQL
-- **Authentication:** ASP.NET Core Identity
+## Configuration
 
-## Development Plan
+### 1. Identify Your IP Address
 
-### Phase 1: Requirements Analysis & Planning
-- Stakeholder interviews with Facility Manager.
-- Current process documentation (Excel workflows, approval chains).
-- Define inventory categories: Janitorial, Electrical, IT Equipment, Office Supplies.
-- Establish user roles: Admin, Users.
-- Identify pain points in current manual system.
-- Setup development environment and version control (Git).
+Open Command Prompt and type `ipconfig`. Look for your IPv4 Address. It will look something like this:
 
-### Phase 2: System Design & Architecture
-- Database ERD design.
-- Data Flow Diagram / System Flowchart.
-- API specification for all CRUD operations and business logic.
-- Security architecture planning with role-based access. (localhost – closed private network)
+```
+IPv4 Address. . . . . . . . . . . : 192.168.1.7 (This is your local IP address).
+```
 
-### Phase 3: Backend Development
-- Server database implementation with proper indexing and constraints.
-- ASP.NET Core MVC application structure with clean architecture.
-- Authentication & authorization system using ASP.NET Identity.
-- Excel import/export functionality with template validation.
+### 2. Update Configuration Files
 
-- Responsive dashboard with real-time inventory status.
-- Supply management interfaces (add/edit/delete with modal forms).
-- Advanced search and filtering by category, serial no. and brand.
-- Final design and layout.
+You need to replace `192.168.1.7` (or your previous IP) with **your actual IPv4 Address** in the following files:
 
-### Phase 4: Test & Deploy
-- Security testing and vulnerability assessment.
-- Performance testing under expected load conditions.
-- Production server setup on government infrastructure.
-- Database backup and recovery procedures implementation.
-- Documentation delivery (user manual, admin guide, technical documentation).
+- **Frontend Folder**:
+  - `pictodev/picto-ims-front-end/server.ts`
+  - `pictodev/picto-ims-front-end/package.json`
+  - `pictodev/picto-ims-front-end/serverconfig.ts`
+  - `pictodev/picto-ims-front-end/src/app/services/auth.service.ts` (Specifically, replace the hardcoded IP in API_BASE_URL if present, ensuring it points to your backend server API, e.g., `private readonly API_BASE_URL = 'http://YOUR_IP_ADDRESS:5265/api/Requisition';`).
 
-## Features
+- **Backend Folder**:
+  - `pictodev/PictoIMS.API/proxy-conf.json`
+  - `pictodev/PictoIMS.API/appsettings.json`
+  - `pictodev/PictoIMS.API/Properties/launchSettings.json`
+  - `pictodev/PictoIMS.API/Program.cs` (Main configuration for the backend server).
 
-### Admin
-- User Management
+### 3. Add Firewall Exception
 
-### Dashboard
-- Monthly RF/RS Usage Report
-- Monthly Remaining Inventory Supplies Report
-- Notifications (for updates on supplies/products or user changes) — real time
+Add an **Inbound Rule** in Windows Firewall for **port 5265**:
 
-### RF & RS
-- Requisition Forms – Items requisitioned for RF or inside office use
-- Request Forms – Repair Requestor & IT Repairman and corresponding data
-- RF/RS Log (Date, Item, Department, Quantity, Status)  
-  *Status: Pending / Approved / Fulfilled*
-- Transfer In / Transfer Out
-- PC Repair Tracker
+1. Search for "Windows Defender Firewall with Advanced Security" in the Windows search bar.
+2. In the left pane, click **Inbound Rules**.
+3. In the right pane, click **New Rule...**.
+4. Select **Port** and click Next.
+5. Select **TCP** and enter `5265` in "Specific local ports". Click Next.
+6. Select **Allow the connection** and click Next.
+7. Ensure all profiles (Domain, Private, Public) are checked, then click Next.
+8. Give the rule a **Name** (e.g., "PictoIMS Backend") and click Finish.
 
-### Inventory
-- Inventory Records [ADD/UPDATE/DELETE] with Remaining Stock (low stock warnings)
-- Audit PICTO Inventory – items used in PICTO OFFICE (IT Supplies may be complex)
+### 4. Configure PostgreSQL to Listen on Your IP
 
-## Database Schema
-- `users`
-- `picto_inventory`
-- `inventory_tracking_history`
-- `requisition_forms`
-- `request_forms`
-- `transfer_in`
-- `transfer_out`
-- `pc_repair_tracker`
+Open **CMD as Administrator**.
+
+1. Navigate to your PostgreSQL data directory:
+   ```bash
+   cd "C:\Program Files\PostgreSQL\17\data"
+   ```
+
+2. Open the `postgresql.conf` file (you can use `notepad postgresql.conf`).
+
+3. Find the line `listen_addresses = 'localhost'` and change it to `listen_addresses = '*'`. Save and close the file.
+
+4. Reload the PostgreSQL configuration. From the PostgreSQL bin directory (e.g., `C:\Program Files\PostgreSQL\17\bin`), open psql and execute:
+   ```sql
+   psql -U postgres
+   -- Enter password: admin123#!
+   ALTER SYSTEM SET listen_addresses = '*';
+   SELECT pg_reload_conf();
+   ```
+
+## Installing the System
+
+### 1. Prepare and Run Backend
+
+Open **one CMD as Administrator**.
+
+1. Navigate to the backend folder:
+   ```bash
+   cd C:\Users\<your_directory>\pictodev\PictoIMS.API
+   ```
+
+2. Build the backend:
+   ```bash
+   dotnet build
+   ```
+
+3. Run the backend server (do not close this CMD terminal):
+   ```bash
+   dotnet run --urls "http://0.0.0.0:5265"
+   ```
+
+### 2. Prepare and Run Frontend
+
+Open a **second CMD as Administrator**.
+
+1. Navigate to the frontend folder:
+   ```bash
+   cd C:\Users\<your_directory>\pictodev\picto-ims-front-end
+   ```
+
+2. Install Angular CLI globally (if not already installed):
+   ```bash
+   npm install -g @angular/cli
+   ```
+
+3. Install project dependencies:
+   ```bash
+   npm install
+   ```
+
+4. Run the Angular development server:
+   ```bash
+   ng serve --host 0.0.0.0 --port 4200 --proxy-config proxy.conf.json
+   ```
+
+### 3. PostgreSQL Database Setup
+
+Open a **third CMD as Administrator**.
+
+- Verify PostgreSQL Installation:
+  ```bash
+  psql --version
+  ```
+  (This should display your PostgreSQL version, e.g., `psql (PostgreSQL) 17.5`)
+
+- **Add to PATH (if psql command doesn't work)**:
+  1. Search for "Edit the system environment variables" in Windows search.
+  2. Click **Environment Variables...**.
+  3. Under **System variables**, find and select **Path**. Click **Edit...**.
+  4. Click **New** and add the path to your PostgreSQL bin directory: `C:\Program Files\PostgreSQL\17\bin`
+  5. Click **OK** on all windows and **restart your system (or sign out and back in)** for changes to take effect.
+
+- **Log in to PSQL Terminal**:
+  1. Open a **new CMD as Administrator**.
+  2. Type: `psql -U postgres`
+  3. Enter the password: `admin123#!` (based on your setup password).
+  4. If `postgres=#` appears, you are successfully logged in.
+
+- **Restore pictodb.sql Database (IMPORTANT)**:
+  1. Ensure you are in the PostgreSQL bin directory (or specify full paths to createdb and psql commands):
+     ```bash
+     cd "C:\Program Files\PostgreSQL\17\bin"
+     ```
+
+  2. Create the database:
+     ```bash
+     createdb -U postgres pictodb
+     ```
+
+  3. Restore the database from the SQL file:
+     ```bash
+     psql -U postgres -d pictodb -f "C:\Users\<your_directory>\pictodev\pictodb.sql"
+     ```
+
+## Accessing the System
+
+Once all services (Backend, Frontend, and PostgreSQL) are running, open your web browser and navigate to:
+
+```
+http://<YOUR_IP_ADDRESS>:4200/login
+```
+
+Replace `<YOUR_IP_ADDRESS>` with the IPv4 Address you identified earlier (e.g., `http://192.168.1.7:4200/login`).
+
+## Project Overview
+
+The Inventory Management System (IMS) is designed to digitize and centralize supply and asset tracking for government facility operations. It streamlines requisition processes, improves reporting, and ensures secure role-based access with audit trail logging.
+
+### Core Objectives
+
+- **Centralize Data**: Securely store all facility supply data in a PostgreSQL database.
+- **Modernize Processes**: Replace manual, document- and spreadsheet-based operations with a modern digital system.
+- **Comprehensive Tracking**: Track inventory, requisitions, usage, and procurement cycles.
+- **Real-time Insights**: Provide real-time updates, search filters, and comprehensive reporting.
+- **Access Control**: Implement role-based access (Admin & Users).
+- **Accountability**: Maintain a complete audit trail of all user transactions and activities.
+
+### Core Functions
+
+1. **Dashboard**: Real-time inventory overview, stock alerts, low-threshold warnings, and recent requisition status.
+2. **Supply Registry**: CRUD (Create, Read, Update, Delete) operations for supply items, categorized (e.g., Janitorial, Electrical, IT Equipment, Office Supplies).
+3. **Stock Movements**: Detailed logging of all inventory transactions.
+4. **Requisition System**: Staff request workflow with approval chains.
+5. **Vendor Management**: Supplier/vendor information, including serial number tracking.
+6. **Excel Integration**: Export functionality with validation and templates.
+7. **Analytics & Reporting**: Usage reports, requisition history, and stock summaries.
+8. **User Management**: Role-based access control (Admin/User), account security features (change password, authentication lock).
+9. **Audit Trail**: Comprehensive logging of all activities.
+10. **Forgot Password**: Password recovery mechanism.
+
+## Tech Stack 
+
+- **Programming Languages**: TypeScript, C#, SQL
+- **Frontend**: Angular v20
+- **Backend**: .NET 9
+- **Database**: PostgreSQL 17.5
+- **Authentication**: JWT + bcrypt hashing
+- **API Testing**: Swagger

@@ -47,7 +47,7 @@ export interface UpdateInventoryRequest extends CreateInventoryRequest {
 }
 
 export interface Requisition {
-  rfId: number;
+  rfId: string;
   requesterName: string;
   requesterPosition: string;
   department: string;

@@ -1,9 +1,9 @@
-import { Component, inject, signal, OnInit, OnDestroy, computed } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, computed, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router, RouterOutlet } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { InventoryService, PictoInventory } from '../../services/inventory.service';
-import { RequisitionsService, Requisition } from '../../services/requisitions.service';
+import { RequisitionsService, RequisitionForm } from '../../services/requisitions.service';
 import { User } from '../../models';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { SidebarComponent } from '../../sidebar/sidebar.components';
@@ -13,13 +13,34 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 
+// Chart.js imports
+declare var Chart: any;
+
+interface CategoryConsumption {
+  category: string;
+  monthlyData: MonthlyConsumption[];
+  color: string;
+}
+
+interface MonthlyConsumption {
+  month: string;
+  count: number;
+}
+
+interface ConsumptionAnalytics {
+  itemId: number;
+  itemName: string;
+  category: string;
+  consumedQuantity: number;
+  dateConsumed: string;
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [
     CommonModule, 
-    RouterModule, 
-    RouterOutlet, 
+    RouterModule,
     SidebarComponent, 
     MatTableModule, 
     MatButtonModule,
@@ -41,15 +62,50 @@ import { FormsModule } from '@angular/forms';
       </header>
 
       <div class="content-area">
-        <!-- Dashboard Grid -->
         <div class="dashboard-grid">
-          
-          <!-- Recent Items Section -->
+
+          <!-- Inventory Overview Chart -->
+          <div class="dashboard-card full-width">
+            <div class="card-header">
+              <h3>Inventory Overview</h3>
+              <div class="chart-controls">
+                <div class="control-group">
+                  <label class="control-label">Time Period:</label>
+                  <select [ngModel]="selectedChartPeriod()" (ngModelChange)="onChartPeriodChange($event)" class="period-select">
+                    <option value="6months">Last 6 Months</option>
+                    <option value="12months">Last 12 Months</option>
+                    <option value="currentYear">Current Year</option>
+                  </select>
+                </div>
+                <div class="control-group">
+                  <label class="control-label">Filter by Month:</label>
+                  <select [ngModel]="selectedMonthFilter()" (ngModelChange)="onMonthFilterChange($event)" class="period-select">
+                    <option value="all">All Months</option>
+                    <option *ngFor="let month of availableMonths()" [value]="month.value">{{month.label}}</option>
+                  </select>
+                </div>
+                <div class="chart-legend">
+                  <div *ngFor="let cat of filteredCategoryData()" class="legend-item">
+                    <span class="legend-color" [style.background-color]="cat.color"></span>
+                    <span class="legend-text">{{cat.category}} ({{cat.totalConsumption}})</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="consumptionChart" width="400" height="200"></canvas>
+              <div *ngIf="categoryConsumptionData().length === 0" class="no-chart-data">
+                No consumption data available for analytics
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Items -->
           <div class="dashboard-card">
             <div class="card-header">
               <h3>Recent Items</h3>
               <div class="filter-controls">
-                <select [(ngModel)]="selectedPeriod" (change)="filterRecentItems()" class="period-select">
+                <select [ngModel]="selectedPeriod()" (ngModelChange)="selectedPeriod.set($event)" class="period-select">
                   <option value="week">This Week</option>
                   <option value="month">This Month</option>
                   <option value="year">This Year</option>
@@ -105,7 +161,7 @@ import { FormsModule } from '@angular/forms';
             </div>
           </div>
 
-          <!-- Stock Alerts Section -->
+          <!-- Stock Alerts -->
           <div class="dashboard-card">
             <div class="card-header">
               <h3>Stock Alerts</h3>
@@ -139,7 +195,7 @@ import { FormsModule } from '@angular/forms';
 
                 <ng-container matColumnDef="quantity">
                   <th mat-header-cell *matHeaderCellDef>
-                    <span class="quantity-header">Qty <span class="low-stock-indicator">⚠️</span></span>
+                    <span class="quantity-header">Qty <span class="low-stock-indicator"></span></span>
                   </th>
                   <td mat-cell *matCellDef="let element">
                     <span class="low-stock-qty">{{element.quantity}}</span>
@@ -172,12 +228,12 @@ import { FormsModule } from '@angular/forms';
               </table>
 
               <div *ngIf="lowStockItems().length === 0" class="no-data">
-                All items are well stocked! 🎉
+                All items are well stocked!
               </div>
             </div>
           </div>
 
-          <!-- Requisition Requests Section -->
+          <!-- Recent Requisition Requests -->
           <div class="dashboard-card">
             <div class="card-header">
               <h3>Recent Requisition Requests</h3>
@@ -189,22 +245,32 @@ import { FormsModule } from '@angular/forms';
             <div class="table-container">
               <table mat-table [dataSource]="recentRequisitions()" class="data-table">
                 
-                <ng-container matColumnDef="rfId">
+                <ng-container matColumnDef="rsNumber">
                   <th mat-header-cell *matHeaderCellDef>
-                    <span class="highlighted-header">RF ID</span>
+                    <span class="highlighted-header">RS Number</span>
                   </th>
                   <td mat-cell *matCellDef="let element">
-                    <span class="highlighted-field">{{element.rfId}}</span>
+                    <span class="highlighted-field">{{element.rsNumber || 'N/A'}}</span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="rfNumber">
+                  <th mat-header-cell *matHeaderCellDef>
+                    <span class="highlighted-header">RF Number</span>
+                  </th>
+                  <td mat-cell *matCellDef="let element">
+                    <span class="highlighted-field">{{element.rfNumber || 'N/A'}}</span>
                   </td>
                 </ng-container>
 
                 <ng-container matColumnDef="requesterName">
-                  <th mat-header-cell *matHeaderCellDef>
-                    <span class="highlighted-header">Requester</span>
-                  </th>
-                  <td mat-cell *matCellDef="let element">
-                    <span class="highlighted-field">{{element.requesterName}}</span>
-                  </td>
+                  <th mat-header-cell *matHeaderCellDef>Requester Name</th>
+                  <td mat-cell *matCellDef="let element">{{element.requesterName}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="requesterPosition">
+                  <th mat-header-cell *matHeaderCellDef>Requester Position</th>
+                  <td mat-cell *matCellDef="let element">{{element.requesterPosition || 'N/A'}}</td>
                 </ng-container>
 
                 <ng-container matColumnDef="department">
@@ -212,24 +278,34 @@ import { FormsModule } from '@angular/forms';
                   <td mat-cell *matCellDef="let element">{{element.department}}</td>
                 </ng-container>
 
-                <ng-container matColumnDef="purpose">
-                  <th mat-header-cell *matHeaderCellDef>Purpose</th>
-                  <td mat-cell *matCellDef="let element">{{element.purpose}}</td>
-                </ng-container>
-
-                <ng-container matColumnDef="dateRequested">
-                  <th mat-header-cell *matHeaderCellDef>Date Requested</th>
-                  <td mat-cell *matCellDef="let element">{{element.dateRequested | date:'mediumDate'}}</td>
-                </ng-container>
-
-                <ng-container matColumnDef="checkedByName">
-                  <th mat-header-cell *matHeaderCellDef>Checked By</th>
-                  <td mat-cell *matCellDef="let element">{{element.checkedByName || 'Pending'}}</td>
-                </ng-container>
-
                 <ng-container matColumnDef="approvedByName">
                   <th mat-header-cell *matHeaderCellDef>Approved By</th>
                   <td mat-cell *matCellDef="let element">{{element.approvedByName || 'Pending'}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="approvedByDate">
+                  <th mat-header-cell *matHeaderCellDef>Date Approved</th>
+                  <td mat-cell *matCellDef="let element">{{element.approvedByDate ? (element.approvedByDate | date:'mediumDate') : 'N/A'}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="issuedByName">
+                  <th mat-header-cell *matHeaderCellDef>Issued By</th>
+                  <td mat-cell *matCellDef="let element">{{element.issuedByName || 'Pending'}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="issuedByDate">
+                  <th mat-header-cell *matHeaderCellDef>Date Issued</th>
+                  <td mat-cell *matCellDef="let element">{{element.issuedByDate ? (element.issuedByDate | date:'mediumDate') : 'N/A'}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="receivedByName">
+                  <th mat-header-cell *matHeaderCellDef>Received By</th>
+                  <td mat-cell *matCellDef="let element">{{element.receivedByName || 'Pending'}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="receivedByDate">
+                  <th mat-header-cell *matHeaderCellDef>Date Received</th>
+                  <td mat-cell *matCellDef="let element">{{element.receivedByDate ? (element.receivedByDate | date:'mediumDate') : 'N/A'}}</td>
                 </ng-container>
 
                 <tr mat-header-row *matHeaderRowDef="requisitionsColumns"></tr>
@@ -248,15 +324,12 @@ import { FormsModule } from '@angular/forms';
   </div>
   `,
   styles: [`
-    @font-face {
-      font-family: 'Montserrat';
-      src: url('/assets/fonts/Montserrat.ttf') format('truetype');
+    .sidebar {
+      position: sticky;
     }
 
     .layout {
       display: flex;
-      height: 100vh;
-      transition: all 0.3s ease;
     }
 
     .content {
@@ -285,7 +358,8 @@ import { FormsModule } from '@angular/forms';
 
     .header-img {
       width: auto;
-      height: 50px;
+      height: 60px;
+      padding-bottom: 10px;
     }
 
     .content-area {
@@ -308,6 +382,10 @@ import { FormsModule } from '@angular/forms';
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
+    .dashboard-card.full-width {
+      grid-column: 1 / -1;
+    }
+
     .card-header {
       display: flex;
       justify-content: space-between;
@@ -324,16 +402,38 @@ import { FormsModule } from '@angular/forms';
       color: #1f2937;
     }
 
-    .filter-controls {
+    .filter-controls, .chart-controls {
       display: flex;
       align-items: center;
       gap: 12px;
+      border-radius: 10px;
+    }
+
+    /* Chart Controls Styling */
+    .chart-controls {
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .control-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #4b5563;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
     }
 
     .period-select {
-      padding: 6px 12px;
+      padding: 8px 12px;
       border: 1px solid #d1d5db;
-      border-radius: 6px;
+      border-radius: 10px;
       font-size: 0.875rem;
       background: white;
     }
@@ -347,6 +447,47 @@ import { FormsModule } from '@angular/forms';
     .export-btn {
       font-size: 0.875rem !important;
       padding: 6px 16px !important;
+      border-radius: 10px !important;
+    }
+
+    /* Chart Styles */
+    .chart-container {
+      position: relative;
+      padding: 24px;
+      height: 400px;
+    }
+
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-left: 12px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    .legend-text {
+      font-size: 0.875rem;
+      color: #4b5563;
+    }
+
+    .no-chart-data {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 350px;
+      color: #6b7280;
+      font-style: italic;
     }
 
     .table-container {
@@ -414,6 +555,21 @@ import { FormsModule } from '@angular/forms';
       color: #991b1b;
     }
 
+    .status-badge.workflow-status.pending {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-badge.workflow-status.approved {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+
+    .status-badge.workflow-status.completed {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+
     .low-stock-qty {
       color: #dc2626;
       font-weight: 600;
@@ -454,7 +610,7 @@ import { FormsModule } from '@angular/forms';
         padding: 16px;
       }
 
-      .filter-controls {
+      .filter-controls, .chart-controls {
         width: 100%;
         justify-content: space-between;
       }
@@ -462,11 +618,15 @@ import { FormsModule } from '@angular/forms';
       .content-area {
         padding: 16px;
       }
+
+      .chart-legend {
+        flex-direction: column;
+        gap: 8px;
+      }
     }
   `]
 })
-
-export class Dashboard implements OnInit, OnDestroy {
+export class Dashboard implements OnInit, OnDestroy, AfterViewInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private inventoryService = inject(InventoryService);
@@ -479,17 +639,39 @@ export class Dashboard implements OnInit, OnDestroy {
 
   // Data sources
   allInventoryItems = signal<PictoInventory[]>([]);
-  allRequisitions = signal<Requisition[]>([]);
+  allRequisitions = signal<RequisitionForm[]>([]);
+  consumptionAnalyticsData = signal<ConsumptionAnalytics[]>([]);
   
-  // Filter period for recent items
-  selectedPeriod = 'month';
+  // Filter periods
+  selectedPeriod = signal('month');
+  selectedChartPeriod = signal('6months');
+  selectedMonthFilter = signal('all');
 
   // Table column definitions
   recentItemsColumns = ['item_id', 'itemName', 'serialNumber', 'category', 'quantity', 'location', 'dateAdded'];
   stockAlertsColumns = ['item_id', 'itemName', 'serialNumber', 'category', 'quantity', 'unit', 'location', 'status'];
-  requisitionsColumns = ['rfId', 'requesterName', 'department', 'purpose', 'dateRequested', 'checkedByName', 'approvedByName'];
+  
+  // Updated requisitions columns - removed workflowStatus
+  requisitionsColumns = [
+    'rsNumber', 
+    'rfNumber', 
+    'requesterName', 
+    'requesterPosition', 
+    'department', 
+    'approvedByName', 
+    'approvedByDate', 
+    'issuedByName', 
+    'issuedByDate', 
+    'receivedByName', 
+    'receivedByDate'
+  ];
 
   private subscriptions: Subscription = new Subscription();
+  private chart: any = null;
+
+  // Categories for analytics
+  categories = ['Electronics', 'IT Supplies', 'Janitorial', 'Office Supplies', 'Other'];
+  categoryColors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#64748b'];
 
   // Computed signals for filtered data
   filteredRecentItems = computed(() => {
@@ -497,7 +679,7 @@ export class Dashboard implements OnInit, OnDestroy {
     const now = new Date();
     let filterDate: Date;
 
-    switch (this.selectedPeriod) {
+    switch (this.selectedPeriod()) {
       case 'week':
         filterDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         break;
@@ -520,13 +702,13 @@ export class Dashboard implements OnInit, OnDestroy {
         if (!a.dateAdded || !b.dateAdded) return 0;
         return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
       })
-      .slice(0, 10); // Show only the 10 most recent
+      .slice(0, 10);
   });
 
   lowStockItems = computed(() => {
     return this.allInventoryItems()
-      .filter(item => item.quantity < 5)
-      .sort((a, b) => a.quantity - b.quantity); // Sort by lowest quantity first
+      .filter(item => (item.quantity ?? 0) < (item.stockThreshold ?? 5))
+      .sort((a, b) => (a.quantity ?? 0) - (b.quantity ?? 0));
   });
 
   recentRequisitions = computed(() => {
@@ -543,85 +725,391 @@ export class Dashboard implements OnInit, OnDestroy {
         if (!a.dateRequested || !b.dateRequested) return 0;
         return new Date(b.dateRequested).getTime() - new Date(a.dateRequested).getTime();
       })
-      .slice(0, 15); // Show only the 15 most recent
+      .slice(0, 15);
+  });
+
+  // Updated category consumption data for monthly analytics
+  categoryConsumptionData = computed(() => {
+    const items = this.allInventoryItems();
+    const period = this.selectedChartPeriod();
+    const now = new Date();
+    
+    // Generate month labels based on selected period
+    const monthLabels = this.generateMonthLabels(period);
+    
+    // Group items by category and calculate monthly consumption
+    const categoryMap = new Map<string, MonthlyConsumption[]>();
+    
+    // Initialize categories with zero consumption for all months
+    this.categories.forEach(cat => {
+      categoryMap.set(cat, monthLabels.map(month => ({ month, count: 0 })));
+    });
+
+    // Calculate consumption based on dateAdded (simulating consumption data)
+    items.forEach(item => {
+      if (!item.dateAdded) return;
+      
+      const itemDate = new Date(item.dateAdded);
+      const monthKey = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
+      
+      // Only include items within the selected period
+      if (!monthLabels.includes(monthKey)) return;
+      
+      const category = item.category || 'Other';
+      const normalizedCategory = this.categories.find(cat => 
+        cat.toLowerCase() === category.toLowerCase()
+      ) || 'Other';
+      
+      const categoryData = categoryMap.get(normalizedCategory);
+      if (categoryData) {
+        const monthData = categoryData.find(m => m.month === monthKey);
+        if (monthData) {
+          // Simulate consumption: Add random consumption between 1-3 per item
+          monthData.count += Math.floor(Math.random() * 3) + 1;
+        }
+      }
+    });
+
+    // Convert to CategoryConsumption format
+    return Array.from(categoryMap.entries()).map(([category, monthlyData], index) => ({
+      category,
+      monthlyData,
+      color: this.categoryColors[index] || '#64748b'
+    }));
+  });
+
+  // Filtered category data based on month filter
+  filteredCategoryData = computed(() => {
+    const monthFilter = this.selectedMonthFilter();
+    const allData = this.categoryConsumptionData();
+    
+    if (monthFilter === 'all') {
+      return allData.map(cat => ({
+        ...cat,
+        totalConsumption: cat.monthlyData.reduce((sum, month) => sum + month.count, 0)
+      }));
+    }
+    
+    // Filter data for specific month
+    return allData.map(cat => {
+      const monthData = cat.monthlyData.filter(m => m.month === monthFilter);
+      return {
+        ...cat,
+        monthlyData: monthData,
+        totalConsumption: monthData.reduce((sum, month) => sum + month.count, 0)
+      };
+    }).filter(cat => cat.totalConsumption > 0); // Only show categories with consumption in selected month
+  });
+
+  // Available months for filtering
+  availableMonths = computed(() => {
+    const period = this.selectedChartPeriod();
+    const monthLabels = this.generateMonthLabels(period);
+    
+    return monthLabels.map(month => {
+      const [year, monthNum] = month.split('-');
+      const date = new Date(parseInt(year), parseInt(monthNum) - 1);
+      return {
+        value: month,
+        label: date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      };
+    });
   });
 
   async ngOnInit() {
     try {
-      // Wait for auth service to initialize
       await this.authService.waitForInitialization();
-
-      // Check authentication
       if (!this.authService.isLoggedIn()) {
-        console.log('User not logged in, redirecting to login');
         this.router.navigate(['/login']);
         return;
       }
 
-      // Subscribe to current user changes
-      const userSub = this.authService.currentUser$.subscribe(user => {
-        this.currentUser.set(user);
-        console.log('Current user updated:', user);
-      });
+      const userSub = this.authService.currentUser$.subscribe(user => this.currentUser.set(user));
       this.subscriptions.add(userSub);
 
-      // Subscribe to auth state changes
       const authSub = this.authService.isAuthenticated$.subscribe(isAuth => {
-        if (!isAuth) {
-          console.log('User authentication lost, redirecting to login');
-          this.router.navigate(['/login']);
-        }
+        if (!isAuth) this.router.navigate(['/login']);
       });
       this.subscriptions.add(authSub);
 
-      // Load data
       await this.loadDashboardData();
-
-      // Refresh auth state
       this.authService.refreshAuthState();
-
       this.isInitialized = true;
-      console.log('Dashboard initialized successfully');
-
     } catch (error) {
       console.error('Error initializing dashboard:', error);
       this.router.navigate(['/login']);
     }
   }
 
+  ngAfterViewInit() {
+    // Load Chart.js and initialize chart after view init
+    this.loadChartJS().then(() => {
+      setTimeout(() => this.initializeChart(), 100);
+    });
+  }
+
   ngOnDestroy() {
+    if (this.chart) {
+      this.chart.destroy();
+    }
     this.subscriptions.unsubscribe();
+  }
+
+  private generateMonthLabels(period: string): string[] {
+    const now = new Date();
+    const labels: string[] = [];
+    
+    let monthsBack = 6;
+    if (period === '12months') monthsBack = 12;
+    else if (period === 'currentYear') monthsBack = now.getMonth() + 1;
+
+    for (let i = monthsBack - 1; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      labels.push(monthKey);
+    }
+    
+    return labels;
+  }
+
+  private async loadChartJS(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (typeof Chart !== 'undefined') {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Chart.js'));
+      document.head.appendChild(script);
+    });
+  }
+
+  private initializeChart() {
+    const canvas = document.getElementById('consumptionChart') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Destroy existing chart if it exists
+    if (this.chart) {
+      this.chart.destroy();
+    }
+
+    const data = this.categoryConsumptionData();
+    const period = this.selectedChartPeriod();
+    const monthLabels = this.generateMonthLabels(period);
+
+    // Prepare datasets for line chart
+    const datasets = data.map(categoryData => {
+      // Create data array matching month labels
+      const chartData = monthLabels.map(month => {
+        const monthData = categoryData.monthlyData.find(m => m.month === month);
+        return monthData ? monthData.count : 0;
+      });
+
+      return {
+        label: categoryData.category,
+        data: chartData,
+        borderColor: categoryData.color,
+        backgroundColor: categoryData.color + '20', // Add transparency
+        tension: 0.4,
+        fill: false,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      };
+    });
+
+    // Format month labels for display
+    const displayLabels = monthLabels.map(month => {
+      const [year, monthNum] = month.split('-');
+      const date = new Date(parseInt(year), parseInt(monthNum) - 1);
+      return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    });
+
+    this.chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: displayLabels,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false // We're using custom legend
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              title: (context: any) => {
+                return `${context[0].label} - Consumption`;
+              },
+              label: (context: any) => {
+                return `${context.dataset.label}: ${context.parsed.y} items`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: true,
+              text: 'Month'
+            },
+            grid: {
+              display: true,
+              color: '#f3f4f6'
+            }
+          },
+          y: {
+            display: true,
+            title: {
+              display: true,
+              text: 'Items Consumed'
+            },
+            beginAtZero: true,
+            grid: {
+              display: true,
+              color: '#f3f4f6'
+            },
+            ticks: {
+              stepSize: 1,
+              callback: function(value: any) {
+                return Number.isInteger(value) ? value : '';
+              }
+            }
+          }
+        },
+        interaction: {
+          mode: 'nearest',
+          axis: 'x',
+          intersect: false
+        },
+        animation: {
+          duration: 1000,
+          easing: 'easeInOutQuart'
+        }
+      }
+    });
+  }
+
+  private updateChart() {
+    if (!this.chart) {
+      this.initializeChart();
+      return;
+    }
+
+    const data = this.categoryConsumptionData();
+    const period = this.selectedChartPeriod();
+    const monthLabels = this.generateMonthLabels(period);
+
+    // Update datasets
+    const datasets = data.map(categoryData => {
+      const chartData = monthLabels.map(month => {
+        const monthData = categoryData.monthlyData.find(m => m.month === month);
+        return monthData ? monthData.count : 0;
+      });
+
+      return {
+        label: categoryData.category,
+        data: chartData,
+        borderColor: categoryData.color,
+        backgroundColor: categoryData.color + '20',
+        tension: 0.4,
+        fill: false,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      };
+    });
+
+    const displayLabels = monthLabels.map(month => {
+      const [year, monthNum] = month.split('-');
+      const date = new Date(parseInt(year), parseInt(monthNum) - 1);
+      return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    });
+
+    this.chart.data.labels = displayLabels;
+    this.chart.data.datasets = datasets;
+    this.chart.update('active');
   }
 
   private async loadDashboardData() {
     try {
-      // Load inventory items
+      // Load inventory data
       const inventory = await firstValueFrom(this.inventoryService.getAllInventory());
       this.allInventoryItems.set(inventory);
 
-      // Load requisitions
+      // Load requisitions data
       const requisitions = await firstValueFrom(this.requisitionsService.getAll());
       this.allRequisitions.set(requisitions);
 
+      // Load consumption analytics if available
+      try {
+        const analytics = await firstValueFrom(this.inventoryService.getConsumptionAnalytics());
+        // Transform the analytics data if it's in a different format
+        if (analytics && Array.isArray(analytics)) {
+          this.consumptionAnalyticsData.set(analytics);
+        }
+      } catch (analyticsError) {
+        console.log('Consumption analytics not available, using inventory data for simulation');
+        // Fallback: simulate consumption data from inventory
+        this.simulateConsumptionData();
+      }
+
+      // Update chart after data is loaded
+      setTimeout(() => {
+        this.updateChart();
+      }, 100);
+
+      // Set up chart period change listener
+      const chartPeriodSub = this.selectedChartPeriod.set;
+      // Subscribe to chart period changes to update chart
+      
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       this.snackBar.open('Error loading dashboard data', 'OK', { duration: 3000 });
     }
   }
 
-  filterRecentItems() {
-    // This will trigger the computed signal to recalculate
-    // No additional action needed since we're using computed signals
+  private simulateConsumptionData() {
+    // Simulate consumption data based on inventory items
+    // This is a fallback when real consumption analytics aren't available
+    const items = this.allInventoryItems();
+    const simulatedData: ConsumptionAnalytics[] = [];
+    
+    items.forEach(item => {
+      // Simulate that some items were "consumed" based on their date added
+      if (item.dateAdded) {
+        const consumptionDate = new Date(item.dateAdded);
+        // Add some randomness to simulate different consumption dates
+        consumptionDate.setDate(consumptionDate.getDate() + Math.floor(Math.random() * 30));
+        
+        simulatedData.push({
+          itemId: item.itemId,
+          itemName: item.itemName,
+          category: item.category,
+          consumedQuantity: Math.floor(Math.random() * 5) + 1, // Random consumption 1-5
+          dateConsumed: consumptionDate.toISOString()
+        });
+      }
+    });
+    
+    this.consumptionAnalyticsData.set(simulatedData);
   }
 
-  // Export functions
   exportRecentCSV() {
     const items = this.filteredRecentItems();
     if (!items.length) {
       this.snackBar.open('No recent items to export', 'OK', { duration: 2000 });
       return;
     }
-
     const headers = ['ID', 'Name', 'Serial Number', 'Category', 'Quantity', 'Location', 'Date Added'];
     const csvContent = [
       headers.join(','),
@@ -635,8 +1123,7 @@ export class Dashboard implements OnInit, OnDestroy {
         item.dateAdded ? new Date(item.dateAdded).toLocaleDateString() : 'N/A'
       ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
     ].join('\r\n');
-
-    this.downloadCSV(csvContent, `recent_items_${this.selectedPeriod}_${new Date().toISOString().split('T')[0]}.csv`);
+    this.downloadCSV(csvContent, `recent_items_${this.selectedPeriod()}_${new Date().toISOString().split('T')[0]}.csv`);
   }
 
   exportStockAlertsCSV() {
@@ -645,7 +1132,6 @@ export class Dashboard implements OnInit, OnDestroy {
       this.snackBar.open('No stock alerts to export', 'OK', { duration: 2000 });
       return;
     }
-
     const headers = ['ID', 'Name', 'Serial Number', 'Category', 'Quantity', 'Unit', 'Location', 'Status'];
     const csvContent = [
       headers.join(','),
@@ -660,7 +1146,6 @@ export class Dashboard implements OnInit, OnDestroy {
         item.status
       ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
     ].join('\r\n');
-
     this.downloadCSV(csvContent, `stock_alerts_${new Date().toISOString().split('T')[0]}.csv`);
   }
 
@@ -670,21 +1155,35 @@ export class Dashboard implements OnInit, OnDestroy {
       this.snackBar.open('No recent requisitions to export', 'OK', { duration: 2000 });
       return;
     }
-
-    const headers = ['RF ID', 'Requester', 'Department', 'Purpose', 'Date Requested', 'Checked By', 'Approved By'];
+    const headers = [
+      'RS Number', 
+      'RF Number', 
+      'Requester Name', 
+      'Requester Position', 
+      'Department', 
+      'Approved By', 
+      'Date Approved', 
+      'Issued By', 
+      'Date Issued', 
+      'Received By', 
+      'Date Received'
+    ];
     const csvContent = [
       headers.join(','),
       ...requisitions.map(req => [
-        req.rfId,
+        req.rsNumber || 'N/A',
+        req.rfNumber || 'N/A',
         req.requesterName,
+        req.requesterPosition || 'N/A',
         req.department,
-        req.purpose || '',
-        req.dateRequested ? new Date(req.dateRequested).toLocaleDateString() : 'N/A',
-        req.checkedByName || 'Pending',
-        req.approvedByName || 'Pending'
+        req.approvedByName || 'Pending',
+        req.approvedByDate ? new Date(req.approvedByDate).toLocaleDateString() : 'N/A',
+        req.issuedByName || 'Pending',
+        req.issuedByDate ? new Date(req.issuedByDate).toLocaleDateString() : 'N/A',
+        req.receivedByName || 'Pending',
+        req.receivedByDate ? new Date(req.receivedByDate).toLocaleDateString() : 'N/A'
       ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
     ].join('\r\n');
-
     this.downloadCSV(csvContent, `recent_requisitions_${new Date().toISOString().split('T')[0]}.csv`);
   }
 
@@ -699,21 +1198,31 @@ export class Dashboard implements OnInit, OnDestroy {
     this.snackBar.open('CSV exported successfully', 'OK', { duration: 2000 });
   }
 
-  // Utility methods from original dashboard
+  // Chart period change handler
+  onChartPeriodChange(newPeriod: string) {
+    this.selectedChartPeriod.set(newPeriod);
+    this.selectedMonthFilter.set('all'); // Reset month filter when period changes
+    setTimeout(() => {
+      this.updateChart();
+    }, 100);
+  }
+
+  // Month filter change handler
+  onMonthFilterChange(newMonth: string) {
+    this.selectedMonthFilter.set(newMonth);
+    setTimeout(() => {
+      this.updateChart();
+    }, 100);
+  }
+
   getDisplayName(): string {
     const user = this.currentUser();
-    if (user?.email) {
-      return user.email.split('@')[0];
-    }
-    return user?.username || 'User';
+    return user?.email?.split('@')[0] ?? user?.username ?? 'User';
   }
 
   getInitials(): string {
     const user = this.currentUser();
-    if (user?.email) {
-      return user.email.charAt(0).toUpperCase();
-    }
-    return user?.username?.charAt(0).toUpperCase() || 'A';
+    return user?.email?.charAt(0).toUpperCase() ?? user?.username?.charAt(0).toUpperCase() ?? 'A';
   }
 
   isActiveRoute(route: string): boolean {
@@ -721,7 +1230,6 @@ export class Dashboard implements OnInit, OnDestroy {
   }
 
   logout(): void {
-    console.log('Logout initiated from dashboard');
     this.authService.logout();
   }
 }

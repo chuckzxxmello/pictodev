@@ -3,7 +3,7 @@ using PictoIMS.API.Models;
 
 namespace PictoIMS.API.Data
 {
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : DbContext // gets the database tables
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
@@ -18,15 +18,15 @@ namespace PictoIMS.API.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<User>().ToTable("users");
+            // getting the database tables from pictodb database
+            modelBuilder.Entity<User>().ToTable("users");                                // get users database
+            modelBuilder.Entity<PictoInventory>().ToTable("picto_inventory");            // get inventory database
+            modelBuilder.Entity<InventoryArchive>().ToTable("picto_archive");            // get inventory archive
+            modelBuilder.Entity<RequisitionForm>().ToTable("requisition_forms");         // get requisition form database
+            modelBuilder.Entity<RequisitionArchive>().ToTable("requisition_archive");    // get requisition form archive database
 
-            modelBuilder.Entity<PictoInventory>().ToTable("picto_inventory");
-            modelBuilder.Entity<InventoryArchive>().ToTable("picto_archive");
-
-            modelBuilder.Entity<RequisitionForm>().ToTable("requisition_forms");
-            modelBuilder.Entity<RequisitionArchive>().ToTable("requisition_archive");
-
-            modelBuilder.Entity<InventoryTrackingHistory>().ToTable("inventory_tracking_history");
+            // modelBuilder.Entity<RequestForm>().ToTable("request_form");
+            // modelBuilder.Entity<RequestForm>().ToTable("request_archive");
         }
     }
 }

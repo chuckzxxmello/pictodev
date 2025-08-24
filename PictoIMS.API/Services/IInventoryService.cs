@@ -11,7 +11,8 @@ namespace PictoIMS.API.Services
         Task<PictoInventory> CreateAsync(PictoInventory inventory);
         Task<bool> UpdateAsync(int id, PictoInventory inventory);
         Task<bool> SoftDeleteAsync(int id, string? reason = null, string? archivedBy = null);
-        Task<bool> SoftDeleteBulkAsync(int[] ids);
+        // Modified to accept archivedBy user
+        Task<bool> SoftDeleteBulkAsync(int[] ids, string archivedBy);
         Task<bool> HardDeleteAsync(int archiveId);
         Task<List<InventoryArchive>> GetAllArchivedAsync();
         Task<InventoryArchive?> GetArchivedByIdAsync(int id);
@@ -21,5 +22,8 @@ namespace PictoIMS.API.Services
         DateTime? dateTo = null,
         string? serialNumber = null
         );
+
+        // Added for dashboard analytics
+        Task<object> GetConsumptionAnalyticsAsync();
     }
 }

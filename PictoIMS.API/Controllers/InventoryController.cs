@@ -4,6 +4,7 @@ using PictoIMS.API.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace PictoIMS.API.Controllers
@@ -86,12 +87,14 @@ namespace PictoIMS.API.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> SoftDelete(int id, [FromQuery] string? reason = null, [FromQuery] string? archivedBy = null)
+        [HttpDelete("{id}/soft")]
+        public async Task<IActionResult> SoftDelete(int id, [FromQuery] string? reason = null)
         {
             try
             {
-                var deleted = await _service.SoftDeleteAsync(id, reason, archivedBy);
+                // Get user from claims, fallback to "System" if not found
+                var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "System";
+                var deleted = await _service.SoftDeleteAsync(id, reason, userName);
                 if (!deleted)
                     return NotFound(new ApiErrorResponse { Message = "Item not found", Detail = $"No inventory item with ID {id}" });
                 return Ok(new ApiSuccessResponse { Message = "Item archived", Detail = $"Item {id} moved to archive" });
@@ -109,11 +112,28 @@ namespace PictoIMS.API.Controllers
             if (ids == null || ids.Length == 0)
                 return BadRequest("No IDs provided.");
 
-            var result = await _service.SoftDeleteBulkAsync(ids);
+            // Get user from HttpContext
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "System";
+            var result = await _service.SoftDeleteBulkAsync(ids, userName);
 
             if (!result) return StatusCode(500, "Failed to delete items.");
 
             return Ok(new { message = $"{ids.Length} items deleted successfully." });
+        }
+
+        [HttpGet("analytics/consumption")]
+        public async Task<IActionResult> GetConsumptionAnalytics()
+        {
+            try
+            {
+                var data = await _service.GetConsumptionAnalyticsAsync();
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving consumption analytics");
+                return StatusCode(500, new ApiErrorResponse { Message = "Failed to fetch analytics", Detail = ex.Message });
+            }
         }
 
         [HttpDelete("archive/{id}")]

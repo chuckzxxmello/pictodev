@@ -15,7 +15,7 @@ template: `
       <div class="login-container">
         <div class="login-card"
         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-          <div class="logo-placeholder"><img src="assets/images/sidebar-logo.png" class="logo-img"/></div>
+          <div class="logo-placeholder"><img src="assets/images/logo-w-name.png" class="logo-img"/></div>
 
           <h2 class="system-title">PICTO Inventory Management System</h2>
 
@@ -58,6 +58,7 @@ template: `
           MULA SA BAYAN, PARA SA BAYAN
         </div>
         <img src="assets/images/pgc-logo.png" alt="Logo" class="footer-logo">
+        <img src="assets/images/bp-logo.png" alt="Logo" class="footer-logo-2">
       </div>
     </div>
   </body>
@@ -76,9 +77,8 @@ styles: [`
   }
 
   .logo-img {
-    width: 150%;
+    width: 300%;
     height: auto;
-    border-radius: 50%;
   }
 
   .login-page {
@@ -197,6 +197,13 @@ styles: [`
     top: 40%;
     transform: translateY(-50%); /* perfectly center vertically */
     height: 70px; /* adjust size */
+  }
+  .footer-logo-2 {
+    position: absolute;
+    right: 120px;  /* distance from right edge */
+    top: 40%;
+    transform: translateY(-50%); /* perfectly center vertically */
+    height: 90px; /* adjust size */
   }
 `]
 })

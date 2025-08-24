@@ -11,15 +11,21 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 AppContext.SetSwitch("Npgsql.DisableDateTimeInfinityConversions", true);
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseUrls("http://0.0.0.0:5265");
+
+// =========================
+// Service Registrations
+// =========================
 
 // Add DbContext with PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register services
+// Register app services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRequisitionService, RequisitionService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IUserService, UserService>(); // ✅ NEW User Service with BCrypt.Net
 
 // Add authentication with JWT Bearer
 var jwtKey = builder.Configuration["Jwt:Key"];
@@ -60,10 +66,12 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     });
 
-// Add Swagger with JWT support
+// =========================
+// Swagger Config (with JWT)
+// =========================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
-{   
+{
     c.EnableAnnotations();
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "PictoIMS API", Version = "v1" });
 
@@ -94,22 +102,52 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Add CORS policy
+// =========================
+// CORS Policies
+// =========================
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAngularDevClient", policy =>
+    // Development only - allows all origins
+    options.AddPolicy("AllowAngularApp", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
-// Build the app
+/*
+// If you want CORS configured only to specific origins, use this instead:
+
+builder.Services.AddCors(options =>
+{
+    // Angular Dev Client (default)
+    options.AddPolicy("AllowAngularDevClient", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200", "http://192.168.1.7:4200") // Added IP address
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+
+    // Extended policy with credentials
+    options.AddPolicy("AllowAngularApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200", "http://192.168.1.7:4200") // Added IP address
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+*/
+
+// =========================
+// Build App
+// =========================
 var app = builder.Build();
 
-// Use CORS
-app.UseCors("AllowAngularDevClient");
+// Use CORS (pick your policy based on frontend need)
+app.UseCors("AllowAngularApp"); // ✅ switched to AllowAngularApp for credentials
 
 if (app.Environment.IsDevelopment())
 {

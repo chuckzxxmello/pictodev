@@ -21,16 +21,21 @@ export class SidebarComponent {
   isExpanded = false; // collapsed by default
 
   menuLinks = [
+    { path: '/userprofile', label: 'Users', icon: 'assets/icons/user.png' },
     { path: '/dashboard', label: 'Dashboard', icon: 'assets/icons/home.png' },
     { path: '/inventory', label: 'Inventory', icon: 'assets/icons/inventory.png' },
-   // { path: '/requests', label: 'Requests Form', icon: 'assets/icons/form.png' },
     { path: '/requisitions', label: 'Requisitions', icon: 'assets/icons/slip.png' },
-   // { path: '/transfers', label: 'Transfer In', icon: 'assets/icons/in.png' },
-   // { path: '/repairs', label: 'Transfer Out', icon: 'assets/icons/out.png' },
     { path: '/archive', label: 'Archive', icon: 'assets/icons/archive.png' }
   ];
 
   @Output() expandChange = new EventEmitter<boolean>();
+
+  constructor() {
+    // ✅ listen for logged-in user
+    this.authService.currentUser$.subscribe(user => {
+      this.currentUser.set(user);
+    });
+  }
 
   expandSidebar() {
     this.isExpanded = true;
@@ -48,5 +53,22 @@ export class SidebarComponent {
 
   logout(): void {
     this.authService.logout();
+  }
+
+  /** ✅ Role-based menu filtering */
+  canShow(link: any): boolean {
+    const user = this.currentUser();
+    if (!user) return false;
+
+    switch (user.role) {
+      case 'Admin':
+        return true; // show all
+      case 'Manager':
+        return link.path !== '/userprofile'; // hide "Users"
+      case 'User':
+        return ['/dashboard', '/inventory', '/requisitions'].includes(link.path);
+      default:
+        return false;
+    }
   }
 }

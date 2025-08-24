@@ -72,6 +72,7 @@ namespace PictoIMS.API.Services
                 existing.Status = item.Status;
                 existing.DateAdded = item.DateAdded;
                 existing.SerialNumber = item.SerialNumber;
+                existing.StockThreshold = item.StockThreshold; // Update stock threshold
 
                 await _context.SaveChangesAsync();
                 return true;
@@ -103,8 +104,9 @@ namespace PictoIMS.API.Services
                     Status = item.Status,
                     DateAdded = item.DateAdded,
                     SerialNumber = item.SerialNumber,
-                    ArchivedReason = reason ?? "Soft delete",
-                    ArchivedBy = archivedBy ?? "System",
+                    StockThreshold = item.StockThreshold, // Copy threshold to archive
+                    ArchivedReason = reason ?? "Archived",
+                    ArchivedBy = archivedBy ?? "System", // Use provided user
                     OriginalItemId = item.ItemId
                 };
 
@@ -120,7 +122,7 @@ namespace PictoIMS.API.Services
             }
         }
 
-        public async Task<bool> SoftDeleteBulkAsync(int[] ids)
+        public async Task<bool> SoftDeleteBulkAsync(int[] ids, string archivedBy)
         {
             try
             {
@@ -144,8 +146,9 @@ namespace PictoIMS.API.Services
                         Status = item.Status,
                         DateAdded = item.DateAdded,
                         SerialNumber = item.SerialNumber,
-                        ArchivedReason = "Bulk soft delete",
-                        ArchivedBy = "System",
+                        StockThreshold = item.StockThreshold, // Copy threshold to archive
+                        ArchivedReason = "Bulk archive",
+                        ArchivedBy = archivedBy, // Use provided user
                         OriginalItemId = item.ItemId
                     };
 
@@ -181,8 +184,6 @@ namespace PictoIMS.API.Services
             }
         }
 
-
-        // Implementation must match exactly:
         public async Task<List<InventoryArchive>> GetAllArchivedAsync()
         {
             try
@@ -198,23 +199,21 @@ namespace PictoIMS.API.Services
             }
         }
 
-public async Task<List<InventoryArchive>> SearchArchivedAsync(DateTime? start, DateTime? end, string? keyword)
-{
-    var query = _context.InventoryArchives.AsQueryable();
+        public async Task<List<InventoryArchive>> SearchArchivedAsync(DateTime? start, DateTime? end, string? keyword)
+        {
+            var query = _context.InventoryArchives.AsQueryable();
 
-    if (start.HasValue)
-        query = query.Where(a => a.ArchivedAt >= start.Value);
+            if (start.HasValue)
+                query = query.Where(a => a.ArchivedAt >= start.Value);
 
-    if (end.HasValue)
-        query = query.Where(a => a.ArchivedAt <= end.Value);
+            if (end.HasValue)
+                query = query.Where(a => a.ArchivedAt <= end.Value);
 
-    if (!string.IsNullOrWhiteSpace(keyword))
-        query = query.Where(a => a.ItemName.Contains(keyword) || a.Description.Contains(keyword));
+            if (!string.IsNullOrWhiteSpace(keyword))
+                query = query.Where(a => a.ItemName.Contains(keyword) || a.Description.Contains(keyword));
 
-    return await query.OrderByDescending(a => a.ArchivedAt).ToListAsync();
-}
-
-
+            return await query.OrderByDescending(a => a.ArchivedAt).ToListAsync();
+        }
 
         public async Task<InventoryArchive?> GetArchivedByIdAsync(int archiveId)
         {
@@ -225,6 +224,34 @@ public async Task<List<InventoryArchive>> SearchArchivedAsync(DateTime? start, D
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching archived item with ID {ArchiveId}", archiveId);
+                throw;
+            }
+        }
+
+        public async Task<object> GetConsumptionAnalyticsAsync()
+        {
+            try
+            {
+                var analytics = await _context.InventoryArchives
+                    .Where(a => a.Category != null)
+                    .GroupBy(a => new { Category = a.Category!, Year = a.ArchivedAt.Year, Month = a.ArchivedAt.Month })
+                    .Select(g => new
+                    {
+                        Category = g.Key.Category,
+                        Year = g.Key.Year,
+                        Month = g.Key.Month,
+                        // Summing quantity for a more accurate "consumption" metric
+                        Count = g.Sum(a => a.Quantity)
+                    })
+                    .OrderBy(r => r.Year)
+                    .ThenBy(r => r.Month)
+                    .ToListAsync();
+
+                return analytics;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching consumption analytics");
                 throw;
             }
         }

@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://your-production-domain/api',
-  apiTimeout: 10000, 
+  apiUrl: 'http://192.168.1.7:5265/api',
+  apiTimeout: 10000,
   enableLogging: false
 };

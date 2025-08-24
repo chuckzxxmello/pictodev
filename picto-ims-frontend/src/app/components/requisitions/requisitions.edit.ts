@@ -7,8 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { Requisition } from '../../models';
+import { RequisitionForm } from '../../services/requisitions.service';
 
 @Component({
   selector: 'app-requisition-edit-dialog',
@@ -22,126 +21,147 @@ import { Requisition } from '../../models';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatSlideToggleModule
   ],
   template: `
     <div class="dialog-container">
       <h2 mat-dialog-title class="dialog-title">Edit Requisition</h2>
 
       <form [formGroup]="form" class="dialog-form" (ngSubmit)="submit()">
+        
+        <div class="section-header">Identifiers</div>
         <div class="form-grid">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>RS Number</mat-label>
+              <input matInput formControlName="rsNumber">
+            </mat-form-field>
+            
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>RF Number</mat-label>
+              <input matInput formControlName="rfNumber">
+            </mat-form-field>
+        </div>
 
-          <!-- Editable rfId -->
-          <mat-form-field appearance="outline" class="form-field">
-            <mat-label>RFID *</mat-label>
-            <input matInput formControlName="rfId" [disabled]="true">   <!-- disable editing -->
-          </mat-form-field>
-
+        <div class="section-header">Requester Information</div>
+        <div class="form-grid">
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Requester Name *</mat-label>
             <input matInput formControlName="requesterName" required>
-            <mat-error *ngIf="form.get('requesterName')?.hasError('required')">Required</mat-error>
+            <mat-error *ngIf="form.get('requesterName')?.hasError('required')">Requester name is required</mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Requester Position *</mat-label>
             <input matInput formControlName="requesterPosition" required>
-            <mat-error *ngIf="form.get('requesterPosition')?.hasError('required')">Required</mat-error>
+            <mat-error *ngIf="form.get('requesterPosition')?.hasError('required')">Requester position is required</mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Department *</mat-label>
             <input matInput formControlName="department" required>
-            <mat-error *ngIf="form.get('department')?.hasError('required')">Required</mat-error>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="form-field full-width">
-            <mat-label>Purpose *</mat-label>
-            <input matInput formControlName="purpose" required>
-            <mat-error *ngIf="form.get('purpose')?.hasError('required')">Required</mat-error>
+            <mat-error *ngIf="form.get('department')?.hasError('required')">Department is required</mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Date Requested</mat-label>
             <input matInput type="date" formControlName="dateRequested">
           </mat-form-field>
-
-          <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Checked By</mat-label>
-            <input matInput formControlName="checkedByName">
+          
+          <mat-form-field appearance="outline" class="form-field full-width">
+            <mat-label>Purpose *</mat-label>
+            <textarea matInput formControlName="purpose" required></textarea>
+            <mat-error *ngIf="form.get('purpose')?.hasError('required')">Purpose is required</mat-error>
           </mat-form-field>
-
-          <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Approved By</mat-label>
-            <input matInput formControlName="approvedByName">
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Issued By</mat-label>
-            <input matInput formControlName="issuedByName">
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Received By</mat-label>
-            <input matInput formControlName="receivedByName">
-          </mat-form-field>
-
-          <div class="form-field">
-            <mat-slide-toggle formControlName="isArchived">Archived</mat-slide-toggle>
-          </div>
         </div>
 
+        <div class="section-header">Workflow & Status</div>
+        <div class="form-grid">
+            <mat-form-field appearance="outline" class="form-field full-width">
+                <mat-label>Workflow Status</mat-label>
+                <mat-select formControlName="workflowStatus">
+                    <mat-option value="Pending">Pending</mat-option>
+                    <mat-option value="Checked">Checked</mat-option>
+                    <mat-option value="Approved">Approved</mat-option>
+                    <mat-option value="Issued">Issued</mat-option>
+                    <mat-option value="Completed">Completed</mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field"><mat-label>Checked By Name</mat-label><input matInput formControlName="checkedByName"></mat-form-field>
+            <mat-form-field appearance="outline" class="form-field"><mat-label>Checked By Position</mat-label><input matInput formControlName="checkedByPosition"></mat-form-field>
+            <mat-form-field appearance="outline" class="form-field full-width"><mat-label>Date Checked</mat-label><input matInput type="date" formControlName="checkedByDate"></mat-form-field>
+            
+            <mat-form-field appearance="outline" class="form-field"><mat-label>Approved By Name</mat-label><input matInput formControlName="approvedByName"></mat-form-field>
+            <mat-form-field appearance="outline" class="form-field"><mat-label>Approved By Position</mat-label><input matInput formControlName="approvedByPosition"></mat-form-field>
+            <mat-form-field appearance="outline" class="form-field full-width"><mat-label>Date Approved</mat-label><input matInput type="date" formControlName="approvedByDate"></mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field"><mat-label>Issued By Name</mat-label><input matInput formControlName="issuedByName"></mat-form-field>
+            <mat-form-field appearance="outline" class="form-field"><mat-label>Issued By Position</mat-label><input matInput formControlName="issuedByPosition"></mat-form-field>
+            <mat-form-field appearance="outline" class="form-field full-width"><mat-label>Date Issued</mat-label><input matInput type="date" formControlName="issuedByDate"></mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field"><mat-label>Received By Name</mat-label><input matInput formControlName="receivedByName"></mat-form-field>
+            <mat-form-field appearance="outline" class="form-field"><mat-label>Received By Position</mat-label><input matInput formControlName="receivedByPosition"></mat-form-field>
+            <mat-form-field appearance="outline" class="form-field full-width"><mat-label>Date Received</mat-label><input matInput type="date" formControlName="receivedByDate"></mat-form-field>
+        </div>
+        
         <div class="dialog-actions">
           <button mat-stroked-button type="button" (click)="close()">Cancel</button>
-          <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid">Save</button>
+          <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || form.pristine">Save Changes</button>
         </div>
       </form>
     </div>
   `,
   styles: [`
-    .dialog-container { padding: 0; max-width: 600px; }
+    .dialog-container { padding: 24px; }
     .dialog-title { margin-bottom: 16px; color: #1976d2; }
-    .dialog-form { display: flex; flex-direction: column; gap: 16px; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .dialog-form { max-height: 70vh; overflow-y: auto; padding-right: 10px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
     .form-field.full-width { grid-column: 1 / -1; }
-    .dialog-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e0e0e0; }
+    .section-header { font-weight: 500; color: #3f51b5; margin-top: 20px; margin-bottom: 12px; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; }
+    .dialog-actions { display: flex; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e0e0e0; }
     @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
   `]
 })
 export class RequisitionEditDialogComponent implements OnInit {
   private fb = inject(FormBuilder);
   private dialogRef = inject(MatDialogRef<RequisitionEditDialogComponent>);
-  public data: { item: Requisition } = inject(MAT_DIALOG_DATA);
+  public data: { item: RequisitionForm } = inject(MAT_DIALOG_DATA);
 
   form = this.fb.group({
-  rfId: [{ value: '', disabled: true }, Validators.required],
-  requesterName: ['', Validators.required],
-  requesterPosition: ['', Validators.required],
-  department: ['', Validators.required],
-  purpose: ['', Validators.required],
-  dateRequested: [''],
-  checkedByName: [''],
-  approvedByName: [''],
-  issuedByName: [''],
-  receivedByName: [''],
-  isArchived: [false as boolean]
+    rsNumber: [''],
+    rfNumber: [''],
+    requesterName: ['', Validators.required],
+    requesterPosition: ['', Validators.required],
+    department: ['', Validators.required],
+    purpose: ['', Validators.required],
+    dateRequested: [''],
+    workflowStatus: [''],
+    checkedByName: [''],
+    checkedByPosition: [''],
+    checkedByDate: [''],
+    approvedByName: [''],
+    approvedByPosition: [''],
+    approvedByDate: [''],
+    issuedByName: [''],
+    issuedByPosition: [''],
+    issuedByDate: [''],
+    receivedByName: [''],
+    receivedByPosition: [''],
+    receivedByDate: [''],
   });
 
   ngOnInit(): void {
     if (this.data?.item) {
       const item = this.data.item;
+      // Helper to format dates for HTML date inputs ('yyyy-MM-dd')
+      const formatDate = (date: string | undefined) => date ? new Date(date).toISOString().substring(0, 10) : '';
+      
       this.form.patchValue({
-        rfId: item.rfId != null ? String(item.rfId) : '',
-        requesterName: item.requesterName,
-        requesterPosition: item.requesterPosition,
-        department: item.department,
-        purpose: item.purpose,
-        dateRequested: item.dateRequested ? item.dateRequested.substring(0, 10) : '',
-        checkedByName: item.checkedByName ?? '',
-        approvedByName: item.approvedByName ?? '',
-        issuedByName: item.issuedByName ?? '',
-        receivedByName: item.receivedByName ?? '',
-        isArchived: item.isArchived ?? false
+        ...item,
+        dateRequested: formatDate(item.dateRequested),
+        checkedByDate: formatDate(item.checkedByDate),
+        approvedByDate: formatDate(item.approvedByDate),
+        issuedByDate: formatDate(item.issuedByDate),
+        receivedByDate: formatDate(item.receivedByDate),
       });
     }
   }
@@ -151,7 +171,13 @@ export class RequisitionEditDialogComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    this.dialogRef.close(this.form.value);
+    const formData = this.form.value;
+    for (const key in formData) {
+        if (key.toLowerCase().includes('date') && formData[key as keyof typeof formData] === '') {
+            (formData as any)[key] = null;
+        }
+    }
+    this.dialogRef.close({ ...this.data.item, ...formData });
   }
 
   close(): void { this.dialogRef.close(); }

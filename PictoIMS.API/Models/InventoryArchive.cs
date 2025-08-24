@@ -48,6 +48,9 @@ namespace PictoIMS.API.Models
         [StringLength(100)]
         public string? SerialNumber { get; set; }
 
+        [Column("stock_threshold")]
+        public int StockThreshold { get; set; } = 10;
+
         // Archive metadata
         [Column("archived_at")]
         public DateTime ArchivedAt { get; set; } = DateTime.UtcNow;

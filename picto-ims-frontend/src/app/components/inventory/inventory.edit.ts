@@ -47,7 +47,11 @@ import { MatSelectModule } from '@angular/material/select';
 
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Category</mat-label>
-            <input matInput formControlName="category" placeholder="e.g., Electronics">
+            <mat-select formControlName="category">
+              <mat-option *ngFor="let category of categories" [value]="category">
+                {{ category }}
+              </mat-option>
+            </mat-select>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="form-field">
@@ -55,6 +59,13 @@ import { MatSelectModule } from '@angular/material/select';
             <input matInput type="number" formControlName="quantity" placeholder="0" min="0" required>
             <mat-error *ngIf="form.get('quantity')?.hasError('required')">Quantity is required</mat-error>
             <mat-error *ngIf="form.get('quantity')?.hasError('min')">Quantity must be 0 or greater</mat-error>
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Stock Threshold *</mat-label>
+            <input matInput type="number" formControlName="stockThreshold" placeholder="10" min="0" required>
+            <mat-error *ngIf="form.get('stockThreshold')?.hasError('required')">Threshold is required</mat-error>
+            <mat-error *ngIf="form.get('stockThreshold')?.hasError('min')">Threshold must be 0 or greater</mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="form-field">
@@ -89,20 +100,29 @@ import { MatSelectModule } from '@angular/material/select';
   `,
   styles: [`
     .dialog-container {
-      padding: 0;
+      padding: 24px;
       max-width: 500px;
+      border-radius: 12px;
+      background-color: #fcfcfc;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
-    
+
     .dialog-title {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-      color: #1976d2;
+      gap: 100px;
+      margin-bottom: 24px;
+      color: #333; /* Darker, more professional color */
+      font-weight: 600;
+      font-size: 1.5rem;
+      border-bottom: 1px solid #eee; /* Add a subtle divider */
+      padding-bottom: 16px;
     }
+
     
     .title-icon {
       font-size: 24px;
+      text-align: center;
     }
     
     .dialog-form {
@@ -121,17 +141,45 @@ import { MatSelectModule } from '@angular/material/select';
       grid-column: 1 / -1;
     }
     
-    .dialog-actions {
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-      margin-top: 24px;
-      padding-top: 16px;
-      border-top: 1px solid #e0e0e0;
+    ::ng-deep .mat-mdc-text-field-wrapper {
+      border-radius: 10px !important; /* Adjust this value for more or less rounding */
+    }
+
+    ::ng-deep .mat-mdc-form-field .mat-mdc-form-field-flex {
+      border-radius: 10px !important; /* Applies to the inner flex container */
+    }
+
+    /* Also apply to the mat-select field */
+    ::ng-deep .mat-mdc-select-trigger {
+      border-radius: 10px !important;
     }
     
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+      padding-top: 24px;
+    }
+
     .cancel-btn {
-      color: #666;
+      color: #6c757d;
+      border-color: #dee2e6;
+    }
+
+    .submit-btn {
+      /* This is already handled by Material, but you could add a custom shadow */
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: box-shadow 0.3s ease-in-out;
+      color: #ffffff;
+      background-color: #253c90;
+    }
+    .submit-btn:hover {
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    ::ng-deep .category-select .mat-mdc-select-panel {
+      background-color: #f0f0f0;
     }
     
     @media (max-width: 600px) {
@@ -148,6 +196,8 @@ export class InventoryEditDialogComponent implements OnInit {
   
   form: FormGroup;
 
+  categories = ['Electronics', 'IT Supplies', 'Janitorial', 'Office'];
+
   constructor() {
     this.form = this.fb.group({
       itemName: ['', [Validators.required]],
@@ -155,6 +205,7 @@ export class InventoryEditDialogComponent implements OnInit {
       description: [''],
       category: [''],
       quantity: [0, [Validators.required, Validators.min(0)]],
+      stockThreshold: [10, [Validators.required, Validators.min(0)]], // Added form control
       unit: [''],
       location: [''],
       status: ['Available'],
@@ -163,19 +214,20 @@ export class InventoryEditDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-  if (this.data?.item) {
-    const item = this.data.item;
-    this.form.patchValue({
-      itemName: item.itemName,
-      serialNumber: item.serialNumber,
-      description: item.description,
-      category: item.category,
-      quantity: item.quantity,
-      unit: item.unit,
-      location: item.location,
-      status: item.status
-    });
-  }
+    if (this.data?.item) {
+      const item = this.data.item;
+      this.form.patchValue({
+        itemName: item.itemName,
+        serialNumber: item.serialNumber,
+        description: item.description,
+        category: item.category,
+        quantity: item.quantity,
+        stockThreshold: item.stockThreshold, // Patch value
+        unit: item.unit,
+        location: item.location,
+        status: item.status
+      });
+    }
   }
 
   submit(): void {

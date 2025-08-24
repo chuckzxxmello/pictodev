@@ -55,27 +55,31 @@ import { InventoryDeleteDialogComponent } from './inventory.delete';
         </div>
       </header>
 
-
       <div class="content-area">
         <div class="table-section">
-
           <!-- Table Controls -->
           <div class="table-controls">
             <div class="controls-left">
-              <button mat-stroked-button class="export-btn" (click)="exportCSV()">Export</button>
-              <button mat-stroked-button class="add-btn" (click)="openAddDialog()">Add</button>
-              <button mat-stroked-button class="add-btn"
-                      [disabled]="!getSelectedItem()"
-                      (click)="openEditDialog(getSelectedItem()!)">Edit</button>
-              <button mat-stroked-button
-                      [disabled]="getSelectedCount() === 0"
-                      (click)="openDeleteDialog(getSelectedItems())"
-                      color="warn">
-                {{ getSelectedCount() === dataSource().length ? 'Delete All' : 'Delete' }}
-              </button>
+              <button mat-stroked-button class="export-btn" (click)="exportCSV()">Export CSV</button>
+              <ng-container *ngIf="userRole !== 'User'">
+                <button mat-stroked-button class="add-btn" (click)="openAddDialog()">Add</button>
+                <button mat-stroked-button class="edit-btn"
+                        [disabled]="!getSelectedItem()"
+                        (click)="openEditDialog(getSelectedItem()!)">Edit</button>
+                <button mat-stroked-button class="delete-btn"
+                        [disabled]="getSelectedCount() === 0"
+                        (click)="openDeleteDialog(getSelectedItems())"
+                        color="warn">
+                  {{ getSelectedCount() === dataSource().length ? 'Delete All' : 'Delete' }}
+                </button>
+              </ng-container>
             </div>
+
             <div class="controls-right">
-              <input type="text" placeholder="Search..." (input)="onSearch($event)">
+              <mat-form-field appearance="outline" class="search-field">
+                <mat-label>Search...</mat-label>
+                <input matInput (input)="onSearch($event)" placeholder="Item name or Serial No.">
+              </mat-form-field>
             </div>
           </div>
 
@@ -83,7 +87,6 @@ import { InventoryDeleteDialogComponent } from './inventory.delete';
           <div class="table-container">
             <table mat-table [dataSource]="dataSource()" class="data-table">
 
-              <!-- Select Column -->
               <ng-container matColumnDef="select">
                 <th mat-header-cell *matHeaderCellDef>
                   <mat-checkbox [checked]="isAllSelected()"
@@ -94,12 +97,6 @@ import { InventoryDeleteDialogComponent } from './inventory.delete';
                 <td mat-cell *matCellDef="let row">
                   <mat-checkbox [(ngModel)]="row.selected"></mat-checkbox>
                 </td>
-              </ng-container>
-
-              <!-- Inventory Columns -->
-              <ng-container matColumnDef="item_id">
-                <th mat-header-cell *matHeaderCellDef>ID</th>
-                <td mat-cell *matCellDef="let element">{{element.item_id}}</td>
               </ng-container>
 
               <ng-container matColumnDef="itemName">
@@ -124,7 +121,13 @@ import { InventoryDeleteDialogComponent } from './inventory.delete';
 
               <ng-container matColumnDef="quantity">
                 <th mat-header-cell *matHeaderCellDef>Qty</th>
-                <td mat-cell *matCellDef="let element">{{element.quantity}}</td>
+                <td mat-cell *matCellDef="let element" [class.low-stock]="element.quantity <= element.stockThreshold">
+                  {{element.quantity}}
+                  <mat-icon *ngIf="element.quantity <= element.stockThreshold" class="warning-icon"
+                            matTooltip="Quantity is at or below stock threshold ({{element.stockThreshold}})">
+                    !
+                  </mat-icon>
+                </td>
               </ng-container>
 
               <ng-container matColumnDef="unit">
@@ -153,7 +156,6 @@ import { InventoryDeleteDialogComponent } from './inventory.delete';
                 <td mat-cell *matCellDef="let element">{{element.dateAdded | date:'mediumDate'}}</td>
               </ng-container>
 
-              <!-- Table Rows -->
               <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
               <tr mat-row *matRowDef="let row; columns: displayedColumns;" [class.selected-row]="row.selected"></tr>
 
@@ -165,8 +167,16 @@ import { InventoryDeleteDialogComponent } from './inventory.delete';
   </div>
 `,
   styles: [`
-    .layout { display:flex; height:100vh; transition: all 0.3s ease; }
+    .sidebar {
+      position: sticky;
+    }
+
+    .layout {
+      display: flex;
+    }
+
     .content { flex:1; padding:10px; width:100%; }
+
     .top-header { 
       height: 60px; 
       background: white; 
@@ -179,45 +189,172 @@ import { InventoryDeleteDialogComponent } from './inventory.delete';
     } 
     .content-area { padding:24px; flex:1; }
     .table-section { background:white; border-radius:12px; overflow:hidden; border:1px solid #e5e7eb; }
-    .table-controls { display:flex; justify-content:space-between; padding:20px 24px; border-bottom:1px solid #f3f4f6; }
+    .table-controls { display:flex; justify-content:space-between; padding:20px 24px; border-bottom:1px solid #f3f4f6; align-items: center; }
     .controls-left { display:flex; gap:8px; }
-    .table-container { overflow-x:auto; }
-    .data-table { width:100%; border-spacing:0; font-size:0.875rem; }
-    .data-table th { background:#f9fafb; padding:16px 12px; font-weight:600; border-bottom:2px solid #e5e7eb; text-align:left; }
+    .controls-left button {
+      border-radius: 10px;
+      height: 47px;
+    }
+
+    .export-btn:hover {
+      background-color: #28a745 !important;
+      color: white !important;
+    }
+
+    .add-btn:hover {
+      background-color: #253c90 !important;
+      color: white !important;
+    }
+
+    .edit-btn:hover {
+      background-color: #ffc005ff !important;
+      color: black !important;
+    }
+
+    .delete-btn:hover {
+      background-color: #dc3545 !important;
+      color: white !important;
+    }
+    .table-container { overflow-x:auto;}
+    .data-table { width:100%; border-spacing:0; font-size:0.875rem;}
+    .data-table th { background:#f9fafb; padding:16px 12px; font-weight:600; border-bottom:2px solid #e5e7eb; text-align:left;}
     .data-table td { padding:12px; border-bottom:1px solid #f3f4f6; }
     .selected-row { background-color:#eff6ff !important; }
     .data-table tr:hover { background-color:#f9fafb; }
-    .header-img {  width: auto;  height: 50px; }
+    .header-img {
+      width: auto;
+      height: 60px;
+      padding-bottom: 10px;
+    }
+
+    .search-container {
+      display: flex;
+      align-items: center;
+      border: 1px solid #000000;
+      border-radius: 10px;
+      padding-top: 0;
+      padding: 5px;
+    }
+
+    .search-input {
+      border: none;
+      outline: none;
+      flex-grow: 1;
+      padding: 8px 15px;
+      font-size: 16px;
+      font-family: Montserrat;
+    }
+
+    .search-input:focus {
+      outline: none;
+    }
+    
+    .search-field {
+      width: 100%;
+    }
+
+    .search-icon-container {
+      padding: 0 10px;
+    }
+
+    .search-icon {
+      width: 20px;
+      height: 20px;
+      fill: #000000ff;
+    }
+
+    .warning-icon {
+      color: #f59e0b;
+      font-size: 16px;
+      margin-left: 8px;
+    }
+
+    .low-stock {
+      color: #dc2626;
+      font-weight: 600;
+    }
+
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .status-badge.available {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+
+    .status-badge.unavailable {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
   `]
 })
 
 export class Inventory implements OnInit, OnDestroy {
+  private authService = inject(AuthService);
   private inventoryService = inject(InventoryService);
   private dialog = inject(MatDialog);
   private snack = inject(MatSnackBar);
   private router = inject(Router);
 
+  userRole: 'User' | 'Manager' | 'Admin' | '' = '';
+  currentUser: User | null = null;
   isCollapsed = false;
   dataSource = signal<PictoInventory[]>([]);
   originalDataSource: PictoInventory[] = [];
-  displayedColumns = ['select','serialNumber','itemName','description','category','quantity','unit','location','status','dateAdded'];
+  displayedColumns = [
+    'select',
+    'serialNumber',
+    'itemName',
+    'description',
+    'category',
+    'quantity',
+    'unit',
+    'location',
+    'status',
+    'dateAdded'
+  ];
   private subscriptions = new Subscription();
 
-  toggleSidebar() { this.isCollapsed = !this.isCollapsed; }
+  toggleSidebar() {
+    this.isCollapsed = !this.isCollapsed;
+  }
 
   async ngOnInit() {
     try {
+      // Get current user info
+      this.currentUser = this.authService.getCurrentUser();
+      this.userRole = (this.currentUser?.role as 'User' | 'Manager' | 'Admin') || '';
+      
+      // Fetch inventory
       const inventory = await firstValueFrom(this.inventoryService.getAllInventory());
       this.dataSource.set([...inventory]);
       this.originalDataSource = [...inventory];
+
+      console.log('Current user:', this.currentUser);
     } catch (error) {
       console.error('Error loading inventory:', error);
       this.snack.open('Error loading inventory', 'OK', { duration: 3000 });
     }
   }
 
-  ngOnDestroy() { 
-    this.subscriptions.unsubscribe(); 
+  ngOnDestroy() {
+    this.subscriptions.unsubscribe();
+  }
+
+  // Role helpers
+  isUser(): boolean {
+    return this.userRole === 'User';
+  }
+  isManager(): boolean {
+    return this.userRole === 'Manager';
+  }
+  isAdmin(): boolean {
+    return this.userRole === 'Admin';
   }
 
   /** --- Search --- */
@@ -249,42 +386,43 @@ export class Inventory implements OnInit, OnDestroy {
   }
 
   private addNewItem(itemData: any) {
-  if (!itemData.name?.trim()) {
-    this.snack.open('Item name is required', 'OK', { duration: 3000 });
-    return;
-  }
-
-  if (!itemData.quantity || itemData.quantity <= 0) {
-    this.snack.open('Quantity must be greater than zero', 'OK', { duration: 3000 });
-    return;
-  }
-
-  const newItemRequest = {
-    itemName: itemData.name,
-    serialNumber: itemData.serial_no || '',
-    description: itemData.description || '',
-    category: itemData.category || '',
-    quantity: itemData.quantity,
-    unit: itemData.unit || '',
-    location: itemData.location || '',
-    status: itemData.status || 'Available'
-  };
-
-  this.inventoryService.createInventory(newItemRequest).subscribe({
-    next: (createdItem) => {
-      this.dataSource.set([createdItem, ...this.dataSource()]);
-      this.originalDataSource.push(createdItem);
-      this.snack.open('Item added successfully', 'OK', { duration: 2000 });
-    },
-    error: (err) => {
-      console.error('Error adding inventory item:', err);
-      this.snack.open('Failed to add item', 'OK', { duration: 3000 });
+    if (!itemData.itemName?.trim()) {
+      this.snack.open('Item name is required', 'OK', { duration: 3000 });
+      return;
     }
-  });
+
+    if (!itemData.quantity || itemData.quantity < 0) {
+      this.snack.open('Quantity must be 0 or greater', 'OK', { duration: 3000 });
+      return;
+    }
+
+    const newItemRequest: CreatePictoInventoryRequest = {
+      itemName: itemData.itemName,
+      serialNumber: itemData.serialNumber || '',
+      description: itemData.description || '',
+      category: itemData.category || '',
+      quantity: itemData.quantity || 0,
+      unit: itemData.unit || '',
+      location: itemData.location || '',
+      status: itemData.status || 'Available',
+      stockThreshold: itemData.stockThreshold || 10
+    };
+
+    this.inventoryService.createInventory(newItemRequest).subscribe({
+      next: (createdItem) => {
+        this.dataSource.set([createdItem, ...this.dataSource()]);
+        this.originalDataSource.push(createdItem);
+        this.snack.open('Item added successfully', 'OK', { duration: 2000 });
+      },
+      error: (err) => {
+        console.error('Error adding inventory item:', err);
+        this.snack.open(err.message || 'Failed to add item', 'OK', { duration: 3000 });
+      }
+    });
   }
 
-    /** --- Edit Dialog --- */
-    openEditDialog(item: PictoInventory) {
+  /** --- Edit Dialog --- */
+  openEditDialog(item: PictoInventory) {
     const dialogRef = this.dialog.open(InventoryEditDialogComponent, {
       width: '500px',
       disableClose: true,
@@ -292,130 +430,123 @@ export class Inventory implements OnInit, OnDestroy {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      // Only run if user actually submitted changes (not cancel)
       if (result) {
         this.updateItem(item.itemId, result);
       }
     });
   }
 
-  /** --- Edit Button Handler --- */
-  editSelectedItem() {
-    const selectedItems = this.getSelectedItems();
-
-    if (!selectedItems.length) {
-      this.snack.open('Please select an item to edit', 'OK', { duration: 3000 });
-      return;
-    }
-
-    if (selectedItems.length > 1) {
-      this.snack.open('Please select only one item to edit', 'OK', { duration: 3000 });
-      return;
-    }
-
-    // Pass the single selected item to the edit dialog
-    this.openEditDialog(selectedItems[0]);
-  }
-
   private updateItem(itemId: number, updatedData: any) {
-  if (!updatedData?.itemName?.trim()) {
-    this.snack.open('Item name is required', 'OK', { duration: 3000 });
-    return;
-  }
-
-  const updateRequest = {
-    itemId: itemId,
-    itemName: updatedData.itemName,       
-    serialNumber: updatedData.serialNumber || '',
-    description: updatedData.description || '',
-    category: updatedData.category || '',
-    quantity: updatedData.quantity,
-    unit: updatedData.unit || '',
-    location: updatedData.location || '',
-    status: updatedData.status || 'Available'
-  };
-
-  this.inventoryService.updateInventory(itemId, updateRequest).subscribe({
-    next: (updatedItem) => {
-      // Merge updatedItem with existing item to preserve other properties (e.g., selected)
-      this.dataSource.set(
-        this.dataSource().map(i => i.itemId === itemId ? { ...i, ...updatedItem } : i)
-      );
-
-      this.originalDataSource = this.originalDataSource.map(i =>
-        i.itemId === itemId ? { ...i, ...updatedItem } : i
-      );
-
-      this.snack.open('Item updated successfully', 'OK', { duration: 2000 });
-    },
-    error: (err) => {
-      console.error('Error updating inventory item:', err);
-      this.snack.open('Failed to update item', 'OK', { duration: 3000 });
+    if (!updatedData?.itemName?.trim()) {
+      this.snack.open('Item name is required', 'OK', { duration: 3000 });
+      return;
     }
-  });
+
+    const updateRequest: UpdatePictoInventoryRequest = {
+      itemId: itemId,
+      itemName: updatedData.itemName,       
+      serialNumber: updatedData.serialNumber || '',
+      description: updatedData.description || '',
+      category: updatedData.category || '',
+      quantity: updatedData.quantity || 0,
+      unit: updatedData.unit || '',
+      location: updatedData.location || '',
+      status: updatedData.status || 'Available',
+      stockThreshold: updatedData.stockThreshold || 10
+    };
+
+    this.inventoryService.updateInventory(itemId, updateRequest).subscribe({
+      next: (updatedItem) => {
+        this.dataSource.set(
+          this.dataSource().map(i => i.itemId === itemId ? { ...i, ...updatedItem } : i)
+        );
+
+        this.originalDataSource = this.originalDataSource.map(i =>
+          i.itemId === itemId ? { ...i, ...updatedItem } : i
+        );
+
+        this.snack.open('Item updated successfully', 'OK', { duration: 2000 });
+      },
+      error: (err) => {
+        console.error('Error updating inventory item:', err);
+        this.snack.open(err.message || 'Failed to update item', 'OK', { duration: 3000 });
+      }
+    });
   }
 
   /** --- Delete Dialog --- */
   openDeleteDialog(items: PictoInventory[] | null) {
-  if (!items || !items.length) return;
+    if (!items || !items.length) return;
 
-  const isBulk = items.length > 1;
+    const isBulk = items.length > 1;
 
-  const dialogRef = this.dialog.open(InventoryDeleteDialogComponent, {
-    width: '400px',
-    data: { items, isBulk }
-  });
+    const dialogRef = this.dialog.open(InventoryDeleteDialogComponent, {
+      width: '400px',
+      data: { items, isBulk }
+    });
 
-  dialogRef.afterClosed().subscribe(result => {
-    if (result) {
-      if (isBulk) {
-        this.deleteSelected();
-      } else {
-        this.deleteItem(items[0].itemId);
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        if (isBulk) {
+          this.deleteSelected();
+        } else {
+          this.deleteItem(items[0].itemId);
+        }
       }
-    }
-  });
+    });
   }
 
   private deleteItem(itemId: number) {
-  if (!itemId) {
-    this.snack.open('Invalid item ID', 'OK', { duration: 3000 });
-    return;
-  }
-
-  this.inventoryService.deleteInventory(itemId).subscribe({
-    next: () => {
-      this.dataSource.set(this.dataSource().filter(i => i.itemId !== itemId));
-      this.originalDataSource = this.originalDataSource.filter(i => i.itemId !== itemId);
-      this.snack.open('Item deleted successfully', 'OK', { duration: 2000 });
-    },
-    error: err => {
-      console.error('Error deleting inventory item:', err);
-      this.snack.open('Failed to delete item. Please try again.', 'OK', { duration: 3000 });
+    if (!itemId) {
+      this.snack.open('Invalid item ID', 'OK', { duration: 3000 });
+      return;
     }
-  });
+
+    // Get current user info for tracking
+    const currentUsername = this.currentUser?.username || 'Unknown User';
+    const reason = `Deleted by ${currentUsername}`;
+    
+    console.log('Deleting item with user:', currentUsername);
+
+    this.inventoryService.softDeleteInventory(itemId, reason, currentUsername).subscribe({
+      next: () => {
+        this.dataSource.set(this.dataSource().filter(i => i.itemId !== itemId));
+        this.originalDataSource = this.originalDataSource.filter(i => i.itemId !== itemId);
+        this.snack.open('Item archived successfully', 'OK', { duration: 2000 });
+      },
+      error: err => {
+        console.error('Error archiving inventory item:', err);
+        this.snack.open(err.message || 'Failed to archive item. Please try again.', 'OK', { duration: 3000 });
+      }
+    });
   }
 
   private deleteSelected() {
-  const selected = this.dataSource().filter(i => i.selected);
-  if (!selected.length) {
-    this.snack.open('No items selected for deletion', 'OK', { duration: 3000 });
-    return;
-  }
-
-  const ids = selected.map(i => i.itemId);
-
-  this.inventoryService.softDeleteInventoryBulk(ids).subscribe({
-    next: () => {
-      this.dataSource.set(this.dataSource().filter(i => !i.selected));
-      this.originalDataSource = this.originalDataSource.filter(i => !ids.includes(i.itemId));
-      this.snack.open(`${ids.length} item(s) deleted successfully`, 'OK', { duration: 2000 });
-    },
-    error: err => {
-      console.error('Error deleting selected items:', err);
-      this.snack.open('Failed to delete selected items. Please try again.', 'OK', { duration: 3000 });
+    const selected = this.dataSource().filter(i => i.selected);
+    if (!selected.length) {
+      this.snack.open('No items selected for deletion', 'OK', { duration: 3000 });
+      return;
     }
-  });
+
+    const ids = selected.map(i => i.itemId);
+    
+    // Get current user info for tracking
+    const currentUsername = this.currentUser?.username || 'Unknown User';
+    const reason = `Bulk deletion by ${currentUsername}`;
+    
+    console.log('Bulk deleting items with user:', currentUsername);
+
+    this.inventoryService.softDeleteInventoryBulk(ids, reason, currentUsername).subscribe({
+      next: () => {
+        this.dataSource.set(this.dataSource().filter(i => !i.selected));
+        this.originalDataSource = this.originalDataSource.filter(i => !ids.includes(i.itemId));
+        this.snack.open(`${ids.length} item(s) archived successfully`, 'OK', { duration: 2000 });
+      },
+      error: err => {
+        console.error('Error archiving selected items:', err);
+        this.snack.open(err.message || 'Failed to archive selected items. Please try again.', 'OK', { duration: 3000 });
+      }
+    });
   }
 
   /** --- Selection Methods --- */
@@ -453,7 +584,7 @@ export class Inventory implements OnInit, OnDestroy {
       return; 
     }
     
-    const headers = ['ID','Serial Number','Name','Description','Category','Quantity','Unit','Location','Status','Date Added'];
+    const headers = ['ID','Serial Number','Name','Description','Category','Quantity','Unit','Location','Status','Date Added','Stock Threshold'];
     const csvContent = [
       headers.join(','),
       ...rows.map(r => [
@@ -466,7 +597,8 @@ export class Inventory implements OnInit, OnDestroy {
         r.unit || '',
         r.location || '',
         r.status,
-        r.dateAdded
+        r.dateAdded,
+        r.stockThreshold
       ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
     ].join('\r\n');
     

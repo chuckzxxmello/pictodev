@@ -1,1 +1,19 @@
 /* You can add global styles to this file, and also import other style files */
+
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/assets/fonts/Montserrat.ttf') format('truetype');
+  font-style: normal;
+  font-display: swap; /* prevents reload issue */
+}
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  margin: 0;
+}
+
+.mat-mdc-select-panel {
+  background-color: #fcfcfc !important;
+  border-radius: 8px !important;
+}
+

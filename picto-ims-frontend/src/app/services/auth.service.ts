@@ -4,13 +4,14 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 import { User, LoginRequest, LoginResponse } from '../models';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly API_BASE_URL = 'http://localhost:5265/api';
+  private readonly API_BASE_URL = environment.apiUrl;
   private readonly TOKEN_KEY = 'authToken';
   private readonly USER_KEY = 'currentUser';
 

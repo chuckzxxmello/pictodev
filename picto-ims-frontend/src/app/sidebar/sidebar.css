@@ -5,12 +5,40 @@
   width: 70px; /* collapsed */
   background: #253c90;
   color: #f9fafb;
-  transition: width 0.3s;
+  transition: width 0.3s ease-in-out;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  position: sticky;
 
 }
+
+/* All text elements that need to be hidden */
+.sidebar .sidebar-text-to-hide {
+  display: none;
+  opacity: 0;
+  white-space: nowrap;
+  transition: opacity 0.3s ease;
+}
+
+/* When the sidebar is hovered, show the text elements */
+.sidebar:hover .sidebar-text-to-hide {
+  display: inline-block; /* or 'block', depending on the element */
+  opacity: 1;
+}
+
+/* Fix the user info display */
+.sidebar-user {
+  margin-top: 10px; /* Adjust spacing as needed */
+  text-align: left;
+}
+.sidebar-user .sidebar-text-to-hide {
+  display: none;
+}
+.sidebar:hover .sidebar-user .sidebar-text-to-hide {
+  display: inline-block;
+}
+
 
 .sidebar:hover {
   width: 220px; /* expanded */

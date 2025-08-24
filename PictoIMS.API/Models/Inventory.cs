@@ -49,6 +49,9 @@ namespace PictoIMS.API.Models
         [StringLength(100)]
         public string? SerialNumber { get; set; }
 
+        [Column("stock_threshold")]
+        public int StockThreshold { get; set; } = 10; // Added stock_threshold property with a default value
+
         public virtual ICollection<InventoryTrackingHistory> TrackingHistory { get; set; } = new List<InventoryTrackingHistory>();
         public virtual ICollection<TransferIn> TransferIns { get; set; } = new List<TransferIn>();
         public virtual ICollection<TransferOut> TransferOuts { get; set; } = new List<TransferOut>();

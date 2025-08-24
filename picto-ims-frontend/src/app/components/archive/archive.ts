@@ -16,12 +16,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { SidebarComponent } from '../../sidebar/sidebar.components';
 
-import { PictoInventory, InventoryService } from '../../services/inventory.service';
-import { RequisitionArchive, RequisitionService } from '../../services/requisition.service';
+import { PictoInventory, InventoryService, InventoryArchive } from '../../services/inventory.service';
+import { RequisitionArchive, RequisitionsService } from '../../services/requisitions.service';
 import { ArchiveInventoryDeleteDialogComponent } from './archive.inventory.delete';
 import { ArchiveRequisitionDeleteDialogComponent } from './archive.requisition.delete';
 
-type ArchiveItem = (PictoInventory | RequisitionArchive) & { selected?: boolean };
+type ArchiveItem = (InventoryArchive | RequisitionArchive) & { selected?: boolean };
 
 @Component({
   selector: 'app-archive',
@@ -55,31 +55,34 @@ type ArchiveItem = (PictoInventory | RequisitionArchive) & { selected?: boolean 
         </div>
       </header>
 
-
       <div class="content-area">
         <div class="table-section">
 
-          <!-- Table Controls -->
           <div class="table-controls">
             <div class="controls-left">
+              <mat-slide-toggle [checked]="archiveType === 'requisition'"
+                                (change)="switchArchiveType($event.checked ? 'requisition' : 'inventory')">
+                Viewing: {{ archiveType === 'inventory' ? 'Inventory' : 'Requisitions' }}
+              </mat-slide-toggle>
               <button mat-stroked-button class="export-btn" (click)="exportCSV()">Export</button>
               <button mat-stroked-button
                       [disabled]="getSelectedCount() === 0"
                       (click)="openDeleteDialog(getSelectedItems())"
                       color="warn">
-                {{ getSelectedCount() === dataSource().length ? 'Delete All' : 'Delete' }}
+                {{ getSelectedCount() === dataSource().length ? 'Delete All Permanently' : 'Delete Permanently' }}
               </button>
             </div>
             <div class="controls-right">
-              <input type="text" placeholder="Search..." (input)="onSearch($event)">
+              <mat-form-field appearance="outline" class="search-field">
+                <mat-label>Search...</mat-label>
+                <input matInput (input)="onSearch($event)" placeholder="Serial No., RS Id., Name...">
+              </mat-form-field>
             </div>
           </div>
 
-          <!-- Table -->
           <div class="table-container">
             <table mat-table [dataSource]="dataSource()" class="data-table">
 
-              <!-- Select Column -->
               <ng-container matColumnDef="select">
                 <th mat-header-cell *matHeaderCellDef>
                   <mat-checkbox [checked]="isAllSelected()"
@@ -92,90 +95,83 @@ type ArchiveItem = (PictoInventory | RequisitionArchive) & { selected?: boolean 
                 </td>
               </ng-container>
 
-              <!-- Inventory Columns -->
-              <ng-container matColumnDef="item_id">
-                <th mat-header-cell *matHeaderCellDef>ID</th>
-                <td mat-cell *matCellDef="let element">{{element.item_id}}</td>
+              <ng-container *ngIf="archiveType === 'inventory'">
+                <ng-container matColumnDef="archiveId">
+                  <th mat-header-cell *matHeaderCellDef>Archive ID</th>
+                  <td mat-cell *matCellDef="let element">{{element.archiveId}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="itemName">
+                  <th mat-header-cell *matHeaderCellDef>Name</th>
+                  <td mat-cell *matCellDef="let element">{{element.itemName}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="serialNumber">
+                  <th mat-header-cell *matHeaderCellDef>Serial Number</th>
+                  <td mat-cell *matCellDef="let element">{{element.serialNumber}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="category">
+                  <th mat-header-cell *matHeaderCellDef>Category</th>
+                  <td mat-cell *matCellDef="let element">{{element.category}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="quantity">
+                  <th mat-header-cell *matHeaderCellDef>Qty</th>
+                  <td mat-cell *matCellDef="let element">{{element.quantity}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="archivedAt">
+                  <th mat-header-cell *matHeaderCellDef>Archived Date</th>
+                  <td mat-cell *matCellDef="let element">{{element.archivedAt | date:'mediumDate'}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="archivedReason">
+                  <th mat-header-cell *matHeaderCellDef>Deleted By</th>
+                  <td mat-cell *matCellDef="let element">{{element.archivedReason || 'N/A'}}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="archivedBy">
+                  <th mat-header-cell *matHeaderCellDef>Archived By</th>
+                  <td mat-cell *matCellDef="let element">{{element.archivedBy || 'System'}}</td>
+                </ng-container>
               </ng-container>
 
-              <ng-container matColumnDef="itemName">
-                <th mat-header-cell *matHeaderCellDef>Name</th>
-                <td mat-cell *matCellDef="let element">{{element.itemName}}</td>
+              <ng-container *ngIf="archiveType === 'requisition'">
+                <ng-container matColumnDef="rfId">
+                    <th mat-header-cell *matHeaderCellDef>RF ID</th>
+                    <td mat-cell *matCellDef="let element">{{element.rfId}}</td>
+                </ng-container>
+                <ng-container matColumnDef="rsNumber">
+                    <th mat-header-cell *matHeaderCellDef>RS Number</th>
+                    <td mat-cell *matCellDef="let element">{{element.rsNumber}}</td>
+                </ng-container>
+                <ng-container matColumnDef="rfNumber">
+                    <th mat-header-cell *matHeaderCellDef>RF Number</th>
+                    <td mat-cell *matCellDef="let element">{{element.rfNumber}}</td>
+                </ng-container>
+                <ng-container matColumnDef="requesterName">
+                    <th mat-header-cell *matHeaderCellDef>Requester</th>
+                    <td mat-cell *matCellDef="let element">{{element.requesterName}}</td>
+                </ng-container>
+                <ng-container matColumnDef="department">
+                    <th mat-header-cell *matHeaderCellDef>Department</th>
+                    <td mat-cell *matCellDef="let element">{{element.department}}</td>
+                </ng-container>
+                <ng-container matColumnDef="purpose">
+                    <th mat-header-cell *matHeaderCellDef>Purpose</th>
+                    <td mat-cell *matCellDef="let element">{{element.purpose}}</td>
+                </ng-container>
+                <ng-container matColumnDef="archivedAt">
+                    <th mat-header-cell *matHeaderCellDef>Date Archived</th>
+                    <td mat-cell *matCellDef="let element">{{element.archivedAt | date:'mediumDate'}}</td>
+                </ng-container>
+                <ng-container matColumnDef="archivedBy">
+                    <th mat-header-cell *matHeaderCellDef>Archived By</th>
+                    <td mat-cell *matCellDef="let element">{{element.archivedBy || 'System'}}</td>
+                </ng-container>
               </ng-container>
 
-              <ng-container matColumnDef="serialNumber">
-                <th mat-header-cell *matHeaderCellDef>Serial Number</th>
-                <td mat-cell *matCellDef="let element">{{element.serialNumber}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="description">
-                <th mat-header-cell *matHeaderCellDef>Description</th>
-                <td mat-cell *matCellDef="let element">{{element.description}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="category">
-                <th mat-header-cell *matHeaderCellDef>Category</th>
-                <td mat-cell *matCellDef="let element">{{element.category}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="quantity">
-                <th mat-header-cell *matHeaderCellDef>Qty</th>
-                <td mat-cell *matCellDef="let element">{{element.quantity}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="unit">
-                <th mat-header-cell *matHeaderCellDef>Unit</th>
-                <td mat-cell *matCellDef="let element">{{element.unit}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="location">
-                <th mat-header-cell *matHeaderCellDef>Location</th>
-                <td mat-cell *matCellDef="let element">{{element.location}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="status">
-
-              <ng-container matColumnDef="rfId">
-                <th mat-header-cell *matHeaderCellDef>RF ID</th>
-                <td mat-cell *matCellDef="let element">{{element.rfId}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="requesterName">
-                <th mat-header-cell *matHeaderCellDef>Requester</th>
-                <td mat-cell *matCellDef="let element">{{element.requesterName}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="department">
-                <th mat-header-cell *matHeaderCellDef>Department</th>
-                <td mat-cell *matCellDef="let element">{{element.department}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="purpose">
-                <th mat-header-cell *matHeaderCellDef>Purpose</th>
-                <td mat-cell *matCellDef="let element">{{element.purpose}}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="dateRequested">
-                <th mat-header-cell *matHeaderCellDef>Date Requested</th>
-                <td mat-cell *matCellDef="let element">{{element.dateRequested | date:'mediumDate'}}</td>
-              </ng-container>
-
-                <th mat-header-cell *matHeaderCellDef>Status</th>
-                <td mat-cell *matCellDef="let element">
-                  <span class="status-badge"
-                        [class.available]="element.status==='Available'"
-                        [class.unavailable]="element.status!=='Available'">
-                    {{element.status}}
-                  </span>
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="dateAdded">
-                <th mat-header-cell *matHeaderCellDef>Date Added</th>
-                <td mat-cell *matCellDef="let element">{{element.dateAdded | date:'mediumDate'}}</td>
-              </ng-container>
-
-              <!-- Table Rows -->
               <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
               <tr mat-row *matRowDef="let row; columns: displayedColumns;" [class.selected-row]="row.selected"></tr>
 
@@ -187,7 +183,14 @@ type ArchiveItem = (PictoInventory | RequisitionArchive) & { selected?: boolean 
   </div>
 `,
   styles: [`
-    .layout { display:flex; height:100vh; transition: all 0.3s ease; }
+    .sidebar {
+      position: sticky;
+    }
+
+    .layout {
+      display: flex;
+    }
+
     .content { flex:1; padding:10px; width:100%; }
     .top-header { 
       height: 60px; 
@@ -201,24 +204,42 @@ type ArchiveItem = (PictoInventory | RequisitionArchive) & { selected?: boolean 
     } 
     .content-area { padding:24px; flex:1; }
     .table-section { background:white; border-radius:12px; overflow:hidden; border:1px solid #e5e7eb; }
-    .table-controls { display:flex; justify-content:space-between; padding:20px 24px; border-bottom:1px solid #f3f4f6; }
-    .controls-left { display:flex; gap:8px; }
+    .table-controls { display:flex; justify-content:space-between; padding:20px 24px; border-bottom:1px solid #f3f4f6; align-items: center; }
+    .controls-left { display:flex; gap:8px; align-items: center; }
+
+    .controls-left button {
+      border-radius: 10px;
+      height: 47px;
+    }
+
+    /* Hover effect for the Export button */
+    .export-btn:hover {
+      background-color: #28a745 !important; /* Green */
+      color: white !important;
+    }
+
     .table-container { overflow-x:auto; }
     .data-table { width:100%; border-spacing:0; font-size:0.875rem; }
     .data-table th { background:#f9fafb; padding:16px 12px; font-weight:600; border-bottom:2px solid #e5e7eb; text-align:left; }
     .data-table td { padding:12px; border-bottom:1px solid #f3f4f6; }
     .selected-row { background-color:#eff6ff !important; }
     .data-table tr:hover { background-color:#f9fafb; }
-    .header-img {  width: auto;  height: 50px; }
+    .header-img {
+      width: auto;
+      height: 60px;
+      padding-bottom: 10px;
+    }
+
+    .search-field {
+      width: 300px;
+    }
   `]
 })
-
 export class Archive implements OnInit, OnDestroy {
   private inventoryService = inject(InventoryService);
-  private requisitionService = inject(RequisitionService);
+  private requisitionsService = inject(RequisitionsService);
   private dialog = inject(MatDialog);
   private snack = inject(MatSnackBar);
-  private router = inject(Router);
 
   isCollapsed = false;
   archiveType: 'inventory' | 'requisition' = 'inventory';
@@ -226,13 +247,7 @@ export class Archive implements OnInit, OnDestroy {
   originalDataSource: ArchiveItem[] = [];
   displayedColumns: string[] = [];
   subscriptions = new Subscription();
-
-  filterDateFrom: string = '';
-  filterDateTo: string = '';
-  filterSearch: string = '';
-
-  toggleSidebar() { this.isCollapsed = !this.isCollapsed; }
-
+  
   async ngOnInit() {
     await this.loadArchive();
   }
@@ -245,199 +260,197 @@ export class Archive implements OnInit, OnDestroy {
     try {
       if (this.archiveType === 'inventory') {
         const inventory = await firstValueFrom(this.inventoryService.getAllArchived());
+        console.log('Loaded inventory archive:', inventory);
         const inventoryWithSelection = inventory.map(item => ({ ...item, selected: false }));
-        this.dataSource.set([...inventoryWithSelection]);
-        this.originalDataSource = [...inventoryWithSelection];
-        this.displayedColumns = ['select','serialNumber','itemName','description','category','quantity','unit','location','status','dateAdded'];
+        this.dataSource.set(inventoryWithSelection);
+        this.originalDataSource = inventoryWithSelection;
+        this.displayedColumns = ['select', 'archiveId', 'itemName', 'serialNumber', 'category', 'quantity', 'archivedAt', 'archivedReason', 'archivedBy'];
       } else {
-        const requisitions = await firstValueFrom(this.requisitionService.getAllArchived());
+        const requisitions = await firstValueFrom(this.requisitionsService.getAllArchived());
+        console.log('Loaded requisition archive:', requisitions);
         const requisitionsWithSelection = requisitions.map(item => ({ ...item, selected: false }));
-        this.dataSource.set([...requisitionsWithSelection]);
-        this.originalDataSource = [...requisitionsWithSelection];
-        this.displayedColumns = ['select','rfId','requesterName','department','purpose','dateRequested'];
+        this.dataSource.set(requisitionsWithSelection);
+        this.originalDataSource = requisitionsWithSelection;
+        this.displayedColumns = ['select', 'rfId', 'rsNumber', 'rfNumber', 'requesterName', 'department', 'purpose', 'archivedAt', 'archivedBy'];
       }
     } catch (error) {
       console.error('Error loading archive:', error);
       this.snack.open('Error loading archive', 'OK', { duration: 3000 });
     }
   }
-
-  /** --- Filtering --- */
-  onSearch(event?: Event): void {  // Add explicit void return type
-  // Extract value from event if provided
-  if (event) {
-    const target = event.target as HTMLInputElement;
-    this.filterSearch = target.value;
-  }
-
-  let filtered = [...this.originalDataSource];
-
-  if (this.filterSearch) {
-    const val = this.filterSearch.toLowerCase();
-    filtered = filtered.filter(i => {
-      if (this.archiveType === 'inventory') {
-        const inv = i as PictoInventory;
-        return inv.itemName.toLowerCase().includes(val) ||
-               (inv.serialNumber?.toLowerCase().includes(val) ?? false);
-      } else {
-        const req = i as RequisitionArchive;
-        return req.rfId.toLowerCase().includes(val) ||
-               req.requesterName.toLowerCase().includes(val);
+  
+  onSearch(event: Event) {
+    const val = (event.target as HTMLInputElement).value.toLowerCase();
+    if (!val) {
+      this.dataSource.set([...this.originalDataSource]);
+      return;
+    }
+    const filtered = this.originalDataSource.filter(i => {
+      if (this.isInventoryItem(i)) {
+        return i.itemName.toLowerCase().includes(val) || 
+               (i.serialNumber?.toLowerCase().includes(val) ?? false) ||
+               (i.archivedBy?.toLowerCase().includes(val) ?? false) ||
+               (i.archivedReason?.toLowerCase().includes(val) ?? false);
       }
+      if (this.isRequisitionItem(i)) {
+        return i.rfId.toLowerCase().includes(val) || 
+               (i.rsNumber?.toLowerCase().includes(val) ?? false) ||
+               (i.rfNumber?.toLowerCase().includes(val) ?? false) ||
+               (i.requesterName?.toLowerCase().includes(val) ?? false) ||
+               (i.archivedBy?.toLowerCase().includes(val) ?? false);
+      }
+      return false;
     });
+    this.dataSource.set(filtered);
   }
 
-  if (this.filterDateFrom || this.filterDateTo) {
-    const from = this.filterDateFrom ? new Date(this.filterDateFrom) : new Date('1970-01-01');
-    const to = this.filterDateTo ? new Date(this.filterDateTo) : new Date();
-    filtered = filtered.filter(i => {
-      const date = this.archiveType === 'inventory' 
-        ? new Date((i as PictoInventory).dateAdded) 
-        : new Date((i as RequisitionArchive).dateRequested);
-      return date >= from && date <= to;
-    });
-  }
-
-  this.dataSource.set(filtered);
-  }
-
-  /** --- Selection --- */
-  isAllSelected(): boolean { 
-    return this.dataSource().length > 0 && this.dataSource().every(r => r.selected); 
-  }
+  isAllSelected = () => this.dataSource().length > 0 && this.dataSource().every(r => r.selected);
   
-  isIndeterminate(): boolean { 
-    const selectedCount = this.dataSource().filter(r => r.selected).length; 
-    return selectedCount > 0 && selectedCount < this.dataSource().length; 
-  }
+  isIndeterminate = () => {
+    const count = this.getSelectedCount();
+    return count > 0 && count < this.dataSource().length;
+  };
   
-  toggleAllSelection(): void { 
-    const allSelected = this.isAllSelected(); 
-    this.dataSource().forEach(r => r.selected = !allSelected); 
-  }
+  toggleAllSelection = () => {
+    const allSelected = this.isAllSelected();
+    this.dataSource.update(items => items.map(i => ({ ...i, selected: !allSelected })));
+  };
   
-  getSelectedItems(): ArchiveItem[] {
-    return this.dataSource().filter(r => r.selected);
-  }
-
-  getSelectedCount(): number {
-    return this.getSelectedItems().length;
-  }
-
-  /** --- Delete Dialog --- */
+  getSelectedItems = () => this.dataSource().filter(r => r.selected);
+  getSelectedCount = () => this.getSelectedItems().length;
+  
   openDeleteDialog(items: ArchiveItem[]) {
-    if (!items || !items.length) return;
-    const isBulk = items.length > 1;
-    const dialogComponent: any = this.archiveType === 'inventory'
-      ? ArchiveInventoryDeleteDialogComponent
-      : ArchiveRequisitionDeleteDialogComponent;
-
-    const dialogRef = this.dialog.open(dialogComponent, { width: '400px', data: { items, isBulk } });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) this.deleteSelected();
-    });
+    if (!items.length) return;
+    
+    if (this.archiveType === 'inventory') {
+      const dialogRef = this.dialog.open(ArchiveInventoryDeleteDialogComponent, { 
+        width: '400px', 
+        data: { items, isBulk: items.length > 1 } 
+      });
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) this.deleteSelected();
+      });
+    } else {
+      const dialogRef = this.dialog.open(ArchiveRequisitionDeleteDialogComponent, { 
+        width: '400px', 
+        data: { items, isBulk: items.length > 1 } 
+      });
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) this.deleteSelected();
+      });
+    }
   }
 
   async deleteSelected() {
     const selected = this.getSelectedItems();
-    if (!selected.length) return;
+    if (!selected.length) {
+      this.snack.open('No items selected for deletion', 'OK', { duration: 3000 });
+      return;
+    }
 
     try {
       if (this.archiveType === 'inventory') {
-        const ids = selected.map(i => (i as PictoInventory).itemId);
-        await firstValueFrom(this.inventoryService.hardDeleteArchived(ids));
-        this.snack.open(`${ids.length} inventory item(s) deleted`, 'OK', { duration: 2000 });
+        // For inventory, we need to use archiveId for deletion
+        const archiveIds = selected.map(i => (i as InventoryArchive).archiveId);
+        console.log('Deleting inventory items with archive IDs:', archiveIds);
+        
+        // Delete each item individually since the service expects single ID
+        for (const archiveId of archiveIds) {
+          await firstValueFrom(this.inventoryService.deleteInventory(archiveId));
+        }
       } else {
-        const ids = selected.map(i => (i as RequisitionArchive).rfId);
-        await firstValueFrom(this.requisitionService.hardDeleteArchived(ids));
-        this.snack.open(`${ids.length} requisition(s) deleted`, 'OK', { duration: 2000 });
+        // For requisitions, delete one by one as per original logic
+        for (const item of selected) {
+          const req = item as RequisitionArchive;
+          await firstValueFrom(this.requisitionsService.hardDeleteArchived(req.rfId));
+        }
       }
-      this.dataSource.set(this.dataSource().filter(i => !i.selected));
-      this.originalDataSource = this.originalDataSource.filter(i => !i.selected);
+      
+      this.snack.open(`${selected.length} item(s) permanently deleted`, 'OK', { duration: 2000 });
+      await this.loadArchive(); // Reload data
     } catch (error) {
       console.error('Error deleting archive items:', error);
-      this.snack.open('Failed to delete selected items', 'OK', { duration: 3000 });
+      this.snack.open('Failed to delete selected items. Please try again.', 'OK', { duration: 3000 });
     }
   }
+  
+  exportCSV() {
+    const rows = this.dataSource();
+    if (!rows.length) {
+      this.snack.open('No data to export', 'OK', { duration: 2000 });
+      return;
+    }
 
-  /** --- Export CSV --- */
-  exportCSV(): void {  // Add explicit void return type
-  const rows = this.dataSource();
-  if (!rows.length) {
-    this.snack.open('No data to export', 'OK', { duration: 2000 });
-    return; // Add explicit return
+    let headers: string[] = [];
+    let csvContent = '';
+
+    if (this.archiveType === 'inventory') {
+      headers = ['Archive ID', 'Item Name', 'Serial Number', 'Category', 'Quantity', 'Unit', 'Location', 'Status', 'Date Added', 'Archived Date', 'Archived Reason', 'Archived By'];
+      csvContent = [
+        headers.join(','),
+        ...rows.map(r => {
+          const item = r as InventoryArchive;
+          return [
+            item.archiveId,
+            item.itemName,
+            item.serialNumber || '',
+            item.category || '',
+            item.quantity,
+            item.unit || '',
+            item.location || '',
+            item.status,
+            item.dateAdded,
+            item.archivedAt,
+            item.archivedReason || '',
+            item.archivedBy || 'System'
+          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+        })
+      ].join('\r\n');
+    } else {
+      headers = ['RF ID', 'RS Number', 'RF Number', 'Requester Name', 'Department', 'Purpose', 'Archived Date', 'Archived By'];
+      csvContent = [
+        headers.join(','),
+        ...rows.map(r => {
+          const item = r as RequisitionArchive;
+          return [
+            item.rfId,
+            item.rsNumber || '',
+            item.rfNumber || '',
+            item.requesterName || '',
+            item.department || '',
+            item.purpose || '',
+            item.archivedAt,
+            item.archivedBy || 'System'
+          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+        })
+      ].join('\r\n');
+    }
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${this.archiveType}_archive_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    this.snack.open('CSV exported successfully', 'OK', { duration: 2000 });
   }
 
-  let headers: string[] = [];
-  let csvRows: string[][] = [];
-
-  if (this.archiveType === 'inventory') {
-    headers = ['ID','Serial Number','Name','Description','Category','Quantity','Unit','Location','Status','Date Added'];
-    csvRows = rows.map(r => {
-      const i = r as PictoInventory;
-      return [
-        String(i.itemId ?? ''),
-        String(i.serialNumber ?? ''),
-        String(i.itemName ?? ''),
-        String(i.description ?? ''),
-        String(i.category ?? ''),
-        String(i.quantity ?? ''),
-        String(i.unit ?? ''),
-        String(i.location ?? ''),
-        String(i.status ?? ''),
-        String(i.dateAdded ?? '')
-      ];
-    });
-  } else {
-    headers = ['RF ID','Requester','Department','Purpose','Date Requested'];
-    csvRows = rows.map(r => {
-      const i = r as RequisitionArchive;
-      return [
-        String(i.rfId ?? ''),
-        String(i.requesterName ?? ''),
-        String(i.department ?? ''),
-        String(i.purpose ?? ''),
-        String(i.dateRequested ?? '')
-      ];
-    });
+  async switchArchiveType(type: 'inventory' | 'requisition') {
+    this.archiveType = type;
+    // Reset search input
+    const searchInput = document.querySelector('.controls-right input') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    await this.loadArchive();
   }
 
-  const csvContent = [
-    headers.join(','),
-    ...csvRows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))
-  ].join('\r\n');
-
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${this.archiveType}_archive_${new Date().toISOString().split('T')[0]}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
-  this.snack.open('CSV exported successfully', 'OK', { duration: 2000 });
-}
-
-async switchArchiveType(type: 'inventory' | 'requisition'): Promise<void> {
-  this.archiveType = type;
-  this.filterSearch = '';
-  this.filterDateFrom = '';
-  this.filterDateTo = '';
-  await this.loadArchive();
-}
-
-// Issue 6: Add proper error handling for date filtering
-private isValidDate(dateString: string): boolean {
-  const date = new Date(dateString);
-  return !isNaN(date.getTime());
-}
-
-// Issue 7: Improved type safety for archiveType check
-private isInventoryItem(item: ArchiveItem): item is PictoInventory {
-  return 'itemId' in item;
-}
-
-private isRequisitionItem(item: ArchiveItem): item is RequisitionArchive {
-  return 'rfId' in item;
-}
+  private isInventoryItem(item: ArchiveItem): item is InventoryArchive {
+    return 'archiveId' in item && 'itemId' in item;
+  }
+  
+  private isRequisitionItem(item: ArchiveItem): item is RequisitionArchive {
+    return 'rfId' in item && !('itemId' in item);
+  }
 }

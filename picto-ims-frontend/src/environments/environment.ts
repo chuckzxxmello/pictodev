@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:5265/api',
+  apiUrl: '/api',
   apiTimeout: 10000,
   enableLogging: true
 };

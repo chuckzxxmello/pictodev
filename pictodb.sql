@@ -31,6 +31,101 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
 
 
+--
+-- Name: generate_rs_number(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.generate_rs_number() RETURNS text
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+    current_year INTEGER := EXTRACT(YEAR FROM NOW());
+    prefix TEXT := 'RS' || current_year;
+    next_number INTEGER;
+BEGIN
+    SELECT COALESCE(MAX(
+        CAST(SUBSTRING(rs_number FROM LENGTH(prefix) + 1) AS INTEGER)
+    ), 0) + 1
+    INTO next_number
+    FROM requisition_forms 
+    WHERE rs_number LIKE prefix || '%'
+    AND rs_number ~ ('^' || prefix || '\d+$');
+
+    RETURN prefix || LPAD(next_number::TEXT, 4, '0');
+END;
+$_$;
+
+
+ALTER FUNCTION public.generate_rs_number() OWNER TO postgres;
+
+--
+-- Name: get_workflow_status(timestamp with time zone, timestamp with time zone, timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.get_workflow_status(p_received_by_date timestamp with time zone, p_issued_by_date timestamp with time zone, p_approved_by_date timestamp with time zone, p_checked_by_date timestamp with time zone) RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF p_received_by_date IS NOT NULL THEN
+        RETURN 'Completed';
+    ELSIF p_issued_by_date IS NOT NULL THEN
+        RETURN 'Issued';
+    ELSIF p_approved_by_date IS NOT NULL THEN
+        RETURN 'Approved';
+    ELSIF p_checked_by_date IS NOT NULL THEN
+        RETURN 'Checked';
+    ELSE
+        RETURN 'Pending';
+    END IF;
+END;
+$$;
+
+
+ALTER FUNCTION public.get_workflow_status(p_received_by_date timestamp with time zone, p_issued_by_date timestamp with time zone, p_approved_by_date timestamp with time zone, p_checked_by_date timestamp with time zone) OWNER TO postgres;
+
+--
+-- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.update_updated_at_column() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.update_updated_at_column() OWNER TO postgres;
+
+--
+-- Name: validate_workflow_sequence(timestamp with time zone, timestamp with time zone, timestamp with time zone, timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.validate_workflow_sequence(p_date_requested timestamp with time zone, p_checked_by_date timestamp with time zone, p_approved_by_date timestamp with time zone, p_issued_by_date timestamp with time zone, p_received_by_date timestamp with time zone) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    dates TIMESTAMPTZ[] := ARRAY[p_date_requested, p_checked_by_date, p_approved_by_date, p_issued_by_date, p_received_by_date];
+    prev_date TIMESTAMPTZ := NULL;
+    curr_date TIMESTAMPTZ;
+BEGIN
+    FOREACH curr_date IN ARRAY dates LOOP
+        IF curr_date IS NOT NULL THEN
+            IF prev_date IS NOT NULL AND curr_date < prev_date THEN
+                RETURN FALSE;
+            END IF;
+            prev_date := curr_date;
+        END IF;
+    END LOOP;
+    RETURN TRUE;
+END;
+$$;
+
+
+ALTER FUNCTION public.validate_workflow_sequence(p_date_requested timestamp with time zone, p_checked_by_date timestamp with time zone, p_approved_by_date timestamp with time zone, p_issued_by_date timestamp with time zone, p_received_by_date timestamp with time zone) OWNER TO postgres;
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -54,7 +149,8 @@ CREATE TABLE public.picto_archive (
     archived_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     archived_reason text,
     archived_by character varying(100),
-    original_item_id integer
+    original_item_id integer,
+    stock_threshold integer
 );
 
 
@@ -96,7 +192,8 @@ CREATE TABLE public.picto_inventory (
     location character varying(100),
     status character varying(20) DEFAULT 'Available'::character varying,
     date_added date DEFAULT CURRENT_DATE,
-    serial_number character varying(100)
+    serial_number character varying(100),
+    stock_threshold integer DEFAULT 10
 );
 
 
@@ -326,28 +423,37 @@ ALTER SEQUENCE public.request_forms_req_id_seq OWNED BY public.request_forms.req
 --
 
 CREATE TABLE public.requisition_archive (
-    rf_id integer NOT NULL,
+    archive_id character varying(50) NOT NULL,
+    rf_id character varying(50) NOT NULL,
+    rs_number character varying(100),
+    rf_number character varying(100),
     requester_name character varying(100),
     requester_position character varying(100),
     department character varying(100),
-    purpose text,
-    date_requested timestamp without time zone,
+    purpose character varying(500),
+    date_requested timestamp with time zone,
     checked_by_name character varying(100),
     checked_by_position character varying(100),
-    checked_by_date timestamp without time zone,
+    checked_by_date timestamp with time zone,
     approved_by_name character varying(100),
     approved_by_position character varying(100),
-    approved_by_date timestamp without time zone,
+    approved_by_date timestamp with time zone,
     issued_by_name character varying(100),
     issued_by_position character varying(100),
-    issued_by_date timestamp without time zone,
+    issued_by_date timestamp with time zone,
     received_by_name character varying(100),
     received_by_position character varying(100),
-    received_by_date timestamp without time zone,
-    is_archived boolean,
-    archived_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    archived_reason text,
-    archived_by character varying(100)
+    received_by_date timestamp with time zone,
+    is_archived boolean DEFAULT true NOT NULL,
+    archived_at timestamp with time zone DEFAULT now() NOT NULL,
+    archived_reason character varying(255),
+    archived_by character varying(100),
+    archive_metadata character varying(1000),
+    system_version character varying(50),
+    archived_from_ip character varying(45),
+    user_agent character varying(500),
+    is_restorable boolean DEFAULT true NOT NULL,
+    retention_expires_at timestamp with time zone
 );
 
 
@@ -358,51 +464,42 @@ ALTER TABLE public.requisition_archive OWNER TO postgres;
 --
 
 CREATE TABLE public.requisition_forms (
-    rf_id integer NOT NULL,
+    rf_id character varying(50) NOT NULL,
+    rs_number character varying(100),
+    rf_number character varying(100),
     requester_name character varying(100) NOT NULL,
-    requester_position character varying(100),
-    department character varying(100),
-    purpose text,
-    date_requested timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    requester_position character varying(100) NOT NULL,
+    department character varying(100) NOT NULL,
+    purpose character varying(500) NOT NULL,
+    date_requested timestamp with time zone,
     checked_by_name character varying(100),
     checked_by_position character varying(100),
-    checked_by_date timestamp without time zone,
+    checked_by_date timestamp with time zone,
     approved_by_name character varying(100),
     approved_by_position character varying(100),
-    approved_by_date timestamp without time zone,
+    approved_by_date timestamp with time zone,
     issued_by_name character varying(100),
     issued_by_position character varying(100),
-    issued_by_date timestamp without time zone,
+    issued_by_date timestamp with time zone,
     received_by_name character varying(100),
     received_by_position character varying(100),
-    received_by_date timestamp without time zone,
-    is_archived boolean DEFAULT false NOT NULL
+    received_by_date timestamp with time zone,
+    is_archived boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT chk_approved_by_consistency CHECK ((((approved_by_date IS NULL) AND (approved_by_name IS NULL) AND (approved_by_position IS NULL)) OR ((approved_by_date IS NOT NULL) AND (approved_by_name IS NOT NULL) AND (approved_by_position IS NOT NULL)))),
+    CONSTRAINT chk_checked_by_consistency CHECK ((((checked_by_date IS NULL) AND (checked_by_name IS NULL) AND (checked_by_position IS NULL)) OR ((checked_by_date IS NOT NULL) AND (checked_by_name IS NOT NULL) AND (checked_by_position IS NOT NULL)))),
+    CONSTRAINT chk_department_length CHECK (((length((department)::text) >= 2) AND (length((department)::text) <= 100))),
+    CONSTRAINT chk_issued_by_consistency CHECK ((((issued_by_date IS NULL) AND (issued_by_name IS NULL) AND (issued_by_position IS NULL)) OR ((issued_by_date IS NOT NULL) AND (issued_by_name IS NOT NULL) AND (issued_by_position IS NOT NULL)))),
+    CONSTRAINT chk_purpose_length CHECK (((length((purpose)::text) >= 10) AND (length((purpose)::text) <= 500))),
+    CONSTRAINT chk_received_by_consistency CHECK ((((received_by_date IS NULL) AND (received_by_name IS NULL) AND (received_by_position IS NULL)) OR ((received_by_date IS NOT NULL) AND (received_by_name IS NOT NULL) AND (received_by_position IS NOT NULL)))),
+    CONSTRAINT chk_requester_name_length CHECK (((length((requester_name)::text) >= 2) AND (length((requester_name)::text) <= 100))),
+    CONSTRAINT chk_requester_position_length CHECK (((length((requester_position)::text) >= 2) AND (length((requester_position)::text) <= 100))),
+    CONSTRAINT chk_workflow_dates CHECK ((((checked_by_date IS NULL) OR (date_requested IS NULL) OR (checked_by_date >= date_requested)) AND ((approved_by_date IS NULL) OR (checked_by_date IS NULL) OR (approved_by_date >= checked_by_date)) AND ((issued_by_date IS NULL) OR (approved_by_date IS NULL) OR (issued_by_date >= approved_by_date)) AND ((received_by_date IS NULL) OR (issued_by_date IS NULL) OR (received_by_date >= issued_by_date))))
 );
 
 
 ALTER TABLE public.requisition_forms OWNER TO postgres;
-
---
--- Name: requisition_forms_rf_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.requisition_forms_rf_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.requisition_forms_rf_id_seq OWNER TO postgres;
-
---
--- Name: requisition_forms_rf_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.requisition_forms_rf_id_seq OWNED BY public.requisition_forms.rf_id;
-
 
 --
 -- Name: users; Type: TABLE; Schema: public; Owner: postgres
@@ -417,7 +514,7 @@ CREATE TABLE public.users (
     email character varying(100),
     phone character varying(20),
     date_created timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT users_role_check CHECK (((role)::text = ANY ((ARRAY['Admin'::character varying, 'Manager'::character varying, 'User'::character varying])::text[])))
+    CONSTRAINT users_role_check CHECK (((role)::text = ANY (ARRAY[('Admin'::character varying)::text, ('Manager'::character varying)::text, ('User'::character varying)::text])))
 );
 
 
@@ -444,6 +541,122 @@ ALTER SEQUENCE public.users_user_id_seq OWNER TO postgres;
 
 ALTER SEQUENCE public.users_user_id_seq OWNED BY public.users.user_id;
 
+
+--
+-- Name: v_active_requisitions; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.v_active_requisitions AS
+ SELECT rf_id,
+    rs_number,
+    rf_number,
+    requester_name,
+    requester_position,
+    department,
+    purpose,
+    date_requested,
+    checked_by_name,
+    checked_by_position,
+    checked_by_date,
+    approved_by_name,
+    approved_by_position,
+    approved_by_date,
+    issued_by_name,
+    issued_by_position,
+    issued_by_date,
+    received_by_name,
+    received_by_position,
+    received_by_date,
+    is_archived,
+    created_at,
+    updated_at,
+    public.get_workflow_status(received_by_date, issued_by_date, approved_by_date, checked_by_date) AS workflow_status,
+        CASE
+            WHEN (received_by_date IS NOT NULL) THEN (received_by_date - date_requested)
+            ELSE (now() - date_requested)
+        END AS processing_duration
+   FROM public.requisition_forms rf
+  WHERE (is_archived = false);
+
+
+ALTER VIEW public.v_active_requisitions OWNER TO postgres;
+
+--
+-- Name: v_archived_requisitions; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.v_archived_requisitions AS
+ SELECT archive_id,
+    rf_id,
+    rs_number,
+    rf_number,
+    requester_name,
+    requester_position,
+    department,
+    purpose,
+    date_requested,
+    checked_by_name,
+    checked_by_position,
+    checked_by_date,
+    approved_by_name,
+    approved_by_position,
+    approved_by_date,
+    issued_by_name,
+    issued_by_position,
+    issued_by_date,
+    received_by_name,
+    received_by_position,
+    received_by_date,
+    is_archived,
+    archived_at,
+    archived_reason,
+    archived_by,
+    archive_metadata,
+    system_version,
+    archived_from_ip,
+    user_agent,
+    is_restorable,
+    retention_expires_at,
+    public.get_workflow_status(received_by_date, issued_by_date, approved_by_date, checked_by_date) AS final_workflow_status,
+        CASE
+            WHEN (date_requested IS NOT NULL) THEN (archived_at - date_requested)
+            ELSE NULL::interval
+        END AS active_duration,
+        CASE
+            WHEN (retention_expires_at IS NOT NULL) THEN (retention_expires_at < now())
+            ELSE false
+        END AS is_expired
+   FROM public.requisition_archive ra;
+
+
+ALTER VIEW public.v_archived_requisitions OWNER TO postgres;
+
+--
+-- Name: v_workflow_statistics; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.v_workflow_statistics AS
+ SELECT 'Active'::text AS record_type,
+    count(*) AS total_count,
+    count(*) FILTER (WHERE (public.get_workflow_status(requisition_forms.received_by_date, requisition_forms.issued_by_date, requisition_forms.approved_by_date, requisition_forms.checked_by_date) = 'Pending'::text)) AS pending_count,
+    count(*) FILTER (WHERE (public.get_workflow_status(requisition_forms.received_by_date, requisition_forms.issued_by_date, requisition_forms.approved_by_date, requisition_forms.checked_by_date) = 'Checked'::text)) AS checked_count,
+    count(*) FILTER (WHERE (public.get_workflow_status(requisition_forms.received_by_date, requisition_forms.issued_by_date, requisition_forms.approved_by_date, requisition_forms.checked_by_date) = 'Approved'::text)) AS approved_count,
+    count(*) FILTER (WHERE (public.get_workflow_status(requisition_forms.received_by_date, requisition_forms.issued_by_date, requisition_forms.approved_by_date, requisition_forms.checked_by_date) = 'Issued'::text)) AS issued_count,
+    count(*) FILTER (WHERE (public.get_workflow_status(requisition_forms.received_by_date, requisition_forms.issued_by_date, requisition_forms.approved_by_date, requisition_forms.checked_by_date) = 'Completed'::text)) AS completed_count
+   FROM public.requisition_forms
+  WHERE (requisition_forms.is_archived = false)
+UNION ALL
+ SELECT 'Archived'::text AS record_type,
+    count(*) AS total_count,
+    count(*) FILTER (WHERE (public.get_workflow_status(requisition_archive.received_by_date, requisition_archive.issued_by_date, requisition_archive.approved_by_date, requisition_archive.checked_by_date) = 'Pending'::text)) AS pending_count,
+    count(*) FILTER (WHERE (public.get_workflow_status(requisition_archive.received_by_date, requisition_archive.issued_by_date, requisition_archive.approved_by_date, requisition_archive.checked_by_date) = 'Checked'::text)) AS checked_count,
+    count(*) FILTER (WHERE (public.get_workflow_status(requisition_archive.received_by_date, requisition_archive.issued_by_date, requisition_archive.approved_by_date, requisition_archive.checked_by_date) = 'Approved'::text)) AS approved_count,
+    count(*) FILTER (WHERE (public.get_workflow_status(requisition_archive.received_by_date, requisition_archive.issued_by_date, requisition_archive.approved_by_date, requisition_archive.checked_by_date) = 'Issued'::text)) AS issued_count,
+    count(*) FILTER (WHERE (public.get_workflow_status(requisition_archive.received_by_date, requisition_archive.issued_by_date, requisition_archive.approved_by_date, requisition_archive.checked_by_date) = 'Completed'::text)) AS completed_count
+   FROM public.requisition_archive;
+
+
+ALTER VIEW public.v_workflow_statistics OWNER TO postgres;
 
 --
 -- Name: picto_archive archive_id; Type: DEFAULT; Schema: public; Owner: postgres
@@ -488,13 +701,6 @@ ALTER TABLE ONLY public.request_forms ALTER COLUMN req_id SET DEFAULT nextval('p
 
 
 --
--- Name: requisition_forms rf_id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.requisition_forms ALTER COLUMN rf_id SET DEFAULT nextval('public.requisition_forms_rf_id_seq'::regclass);
-
-
---
 -- Name: users user_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -505,25 +711,8 @@ ALTER TABLE ONLY public.users ALTER COLUMN user_id SET DEFAULT nextval('public.u
 -- Data for Name: picto_archive; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.picto_archive (archive_id, item_id, item_name, description, category, quantity, unit, location, status, date_added, serial_number, archived_at, archived_reason, archived_by, original_item_id) FROM stdin;
-1	16	Laptop	LENOVO THINKPAD T14	Electronics	10	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-18 14:04:09.045104	COMPLETED	TINTIN	16
-3	101	Ergonomic Office Chair	Comfortable office chair with adjustable height and lumbar support	Office Furniture	15	pcs	Main Office	Available	2025-08-12 00:00:00	\N	2025-08-19 11:52:31.797439	Soft delete	System	101
-4	10	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	\N	\N	Available	2025-08-12 00:00:00	\N	2025-08-19 11:53:05.676358	Soft delete	System	10
-5	14	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 11:53:09.227896	Soft delete	System	14
-6	15	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 11:53:12.086302	Soft delete	System	15
-7	17	Laptop	HP OMEN 17 TRANSCEND	Electronics	10	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 11:53:14.785938	Soft delete	System	17
-8	2	Laptop Updated	HP OMEN 17 TRANSCEND Updated	Electronics	15	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 12:08:31.820419	Bulk soft delete	System	2
-9	4	Office Desk	Wooden office desk	Office Furniture	10	pcs	Main Office	Available	2025-08-13 00:00:00	\N	2025-08-19 12:09:24.790658	Bulk soft delete	System	4
-10	5	Projector	HD projector for meetings	IT Equipment	5	pcs	Conference Room	Available	2025-08-13 00:00:00	\N	2025-08-19 12:09:24.791743	Bulk soft delete	System	5
-11	6	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 12:09:24.791817	Bulk soft delete	System	6
-12	11	Ergonomic Office Chair	Comfortable office chair	Office Furniture	15	pcs	Main Office	Available	2025-08-12 00:00:00	\N	2025-08-19 12:09:30.180411	Bulk soft delete	System	11
-13	7	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 12:09:30.181062	Bulk soft delete	System	7
-14	8	Wireless Mouse	Ergonomic wireless mouse	IT Equipment	25	pcs	IT Office	Available	2025-08-11 00:00:00	\N	2025-08-19 12:09:30.181289	Bulk soft delete	System	8
-15	9	Laptop	\N	Electronics	5	\N	\N	Available	2025-08-12 00:00:00	\N	2025-08-19 12:09:30.181444	Bulk soft delete	System	9
-16	21	WORKSTATION	HP Z5	Electronics	1	pcs	IT Office	Available	2025-08-11 00:00:00	\N	2025-08-19 12:09:30.181606	Bulk soft delete	System	21
-17	24	Laptop	LENOVO THINKPAD T14	Electronics	10	pcs	IT Office	Available	2025-08-12 00:00:00	\N	2025-08-19 12:09:30.181764	Bulk soft delete	System	24
-18	29	aaaaa	fsdfsdf	dsfsdf	6	fsdfsd	fsdfsd	Available	2025-08-19 00:00:00	fsdfsdf	2025-08-19 12:41:53.273662	Bulk soft delete	System	29
-19	28	aaaaa	sdfsdfs	dsfsdf	1	sdfsdf	sfdsdf	Available	2025-08-19 00:00:00	aaaaa	2025-08-19 12:41:53.27487	Bulk soft delete	System	28
+COPY public.picto_archive (archive_id, item_id, item_name, description, category, quantity, unit, location, status, date_added, serial_number, archived_at, archived_reason, archived_by, original_item_id, stock_threshold) FROM stdin;
+12	5	qeqwe	eqwqwe		2	pcs	dasdasd	Available	2025-08-24 00:00:00	eqweq	2025-08-24 03:00:58.984712	Deleted by admin	System	5	10
 \.
 
 
@@ -531,9 +720,9 @@ COPY public.picto_archive (archive_id, item_id, item_name, description, category
 -- Data for Name: picto_inventory; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.picto_inventory (item_id, item_name, description, category, quantity, unit, location, status, date_added, serial_number) FROM stdin;
-26	HP Omen 17 Transcend	gaming laptop	IT Supplies	1	pcs	PICTO Storage Room	Available	2025-08-19	OMN-TS-RND1
-27	HP Z5	desktop workstation	Electronics	1	pcs	PICTO Storage Room	Available	2025-08-19	HPZ5-RND2
+COPY public.picto_inventory (item_id, item_name, description, category, quantity, unit, location, status, date_added, serial_number, stock_threshold) FROM stdin;
+6	dasdas	dasdasd	IT Supplies	100	kg	dasda	Available	2025-08-24	dasda	25
+4	asdadasa	asdasd	Electronics	5	kgs	dasdas	Available	2025-08-24	dasda	10
 \.
 
 
@@ -575,8 +764,10 @@ COPY public.request_forms (req_id, requestor_name, requestor_position, departmen
 -- Data for Name: requisition_archive; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.requisition_archive (rf_id, requester_name, requester_position, department, purpose, date_requested, checked_by_name, checked_by_position, checked_by_date, approved_by_name, approved_by_position, approved_by_date, issued_by_name, issued_by_position, issued_by_date, received_by_name, received_by_position, received_by_date, is_archived, archived_at, archived_reason, archived_by) FROM stdin;
-2	Chuckz	CEO	IT	Purchase new laptops	2025-08-14 05:43:21.529	Jane Checker	IT Supervisor	2025-08-14 06:00:00	Alex Approver	CIO	2025-08-14 06:30:00	Sam Issuer	Inventory Officer	2025-08-14 07:00:00	John Receiver	IT Staff	2025-08-14 07:30:00	t	2025-08-18 21:35:16.983658	string	string
+COPY public.requisition_archive (archive_id, rf_id, rs_number, rf_number, requester_name, requester_position, department, purpose, date_requested, checked_by_name, checked_by_position, checked_by_date, approved_by_name, approved_by_position, approved_by_date, issued_by_name, issued_by_position, issued_by_date, received_by_name, received_by_position, received_by_date, is_archived, archived_at, archived_reason, archived_by, archive_metadata, system_version, archived_from_ip, user_agent, is_restorable, retention_expires_at) FROM stdin;
+7bbd36bf-e764-4c91-834a-8df5667d6127	a76c32b3-ea66-46f3-997d-d19111b0ac7a	RS20250002	\N	sir ace	admin tech	picto	fix power supply issues	2025-08-23 21:38:49.555071+08	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	2025-08-23 21:47:58.749965+08	Archived via Angular	system	\N	\N	\N	\N	t	2032-08-23 21:47:58.752311+08
+51ef0886-d3a6-42fa-9948-3747a680f29e	1632b4ec-356d-4703-97b7-e59515a2b01c	RS20250001	\N	chuckz	admin aide	picto	fix cpu issues	2025-08-23 08:00:00+08	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	2025-08-23 21:54:53.109354+08	string	string	string	\N	\N	\N	t	2032-08-23 21:54:53.109357+08
+105b89e9-56df-476f-8440-b78121bcf7fe	ce42ab62-51d9-45ac-ab61-245beaabe13a	RS-5002	43-5762	sir ace	admin aide III	picto	fix psu not working properly	2025-08-24 08:00:00+08	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	t	2025-08-24 11:00:14.907074+08	Archived by admin	admin	\N	\N	\N	\N	t	2032-08-24 11:00:14.908946+08
 \.
 
 
@@ -584,11 +775,8 @@ COPY public.requisition_archive (rf_id, requester_name, requester_position, depa
 -- Data for Name: requisition_forms; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.requisition_forms (rf_id, requester_name, requester_position, department, purpose, date_requested, checked_by_name, checked_by_position, checked_by_date, approved_by_name, approved_by_position, approved_by_date, issued_by_name, issued_by_position, issued_by_date, received_by_name, received_by_position, received_by_date, is_archived) FROM stdin;
-6	Alice Santos	Staff	IT	Purchase of monitors	2025-08-09 00:00:00	John Reyes	Supervisor	2025-08-10 00:00:00	Maria Cruz	Manager	2025-08-11 00:00:00	Paul Tan	Warehouse	2025-08-12 00:00:00	Luis Gomez	Staff	2025-08-13 00:00:00	f
-7	Benito Lim	Engineer	Maintenance	Replacement of tools	2025-08-04 00:00:00	Rosa Dela Cruz	Supervisor	2025-08-05 00:00:00	Victor Ong	Manager	2025-08-06 00:00:00	Carla Reyes	Warehouse	2025-08-07 00:00:00	Ramon Santos	Engineer	2025-08-08 00:00:00	f
-8	Carla Diaz	Coordinator	HR	Office supplies	2025-08-12 00:00:00	Henry Lopez	Supervisor	2025-08-13 00:00:00	Angela Tan	Manager	2025-08-14 00:00:00	Monica Cruz	Warehouse	2025-08-15 00:00:00	Jose Perez	Coordinator	2025-08-16 00:00:00	f
-9	David Yu	Staff	Finance	Stationery requisition	2025-07-30 00:00:00	Anna Lim	Supervisor	2025-07-31 00:00:00	Carlos Reyes	Manager	2025-08-01 00:00:00	Liza Gomez	Warehouse	2025-08-02 00:00:00	Miguel Santos	Staff	2025-08-03 00:00:00	t
+COPY public.requisition_forms (rf_id, rs_number, rf_number, requester_name, requester_position, department, purpose, date_requested, checked_by_name, checked_by_position, checked_by_date, approved_by_name, approved_by_position, approved_by_date, issued_by_name, issued_by_position, issued_by_date, received_by_name, received_by_position, received_by_date, is_archived, created_at, updated_at) FROM stdin;
+e6340e82-09f2-4434-a633-c3bbd9698005	RS20250001	\N	chuckz	admin aide	picto	fix overheating cpu issues	2025-08-24 08:00:00+08	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	2025-08-24 10:56:52.799951+08	2025-08-24 11:02:25.510792+08
 \.
 
 
@@ -598,8 +786,8 @@ COPY public.requisition_forms (rf_id, requester_name, requester_position, depart
 
 COPY public.users (user_id, username, password_hash, full_name, role, email, phone, date_created) FROM stdin;
 3	admin	$2a$12$T7Yud3/PRxF0L.zMrih3IeauhTwzWCiQ7gmvj1aDvI0ER2Ww7LCda	Admin	Admin	admin@root.com	1234567890	2025-08-12 01:15:41.579701
-9	chuckz	$2a$12$tD4RFg1NsQOXW6/Vh3yx4uH/blWaHDGF/jBDNM3kfMFp2oxLjZuAS	chuckz	Admin	admin2@root.com	0987654321	2025-08-13 15:01:50.966
-18	string	$2a$12$rGB01T51Bxyq6DC4ql0kc.kZznvHQeiHEtEAHfP16PRUUkqKixCJq	string	User	string	string	2025-08-13 15:32:41.649594
+21	dummy	$2a$12$tJSPNpkbpyt0nzBuRfLIFe3h5ATi6PyBOUzwFhxUr1/84PWzgevmC	usertest	User	usertest@mail.com	123456742342	2025-08-21 17:50:58.572263
+20	chuckz	$2a$12$6QM/V4FprY/ysxPbLwY9WOXt9pzXENR22j1IoGkphG3du56ay1Q7u	Chuckie	Manager	chuckz.espanola@gmail.com	3453453	2025-08-21 17:40:16.286907
 \.
 
 
@@ -607,14 +795,14 @@ COPY public.users (user_id, username, password_hash, full_name, role, email, pho
 -- Name: picto_archive_archive_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.picto_archive_archive_id_seq', 19, true);
+SELECT pg_catalog.setval('public.picto_archive_archive_id_seq', 12, true);
 
 
 --
 -- Name: picto_inventory_item_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.picto_inventory_item_id_seq', 29, true);
+SELECT pg_catalog.setval('public.picto_inventory_item_id_seq', 6, true);
 
 
 --
@@ -646,17 +834,10 @@ SELECT pg_catalog.setval('public.request_forms_req_id_seq', 2, true);
 
 
 --
--- Name: requisition_forms_rf_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.requisition_forms_rf_id_seq', 9, true);
-
-
---
 -- Name: users_user_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.users_user_id_seq', 18, true);
+SELECT pg_catalog.setval('public.users_user_id_seq', 21, true);
 
 
 --
@@ -673,14 +854,6 @@ ALTER TABLE ONLY public.picto_archive
 
 ALTER TABLE ONLY public.picto_inventory
     ADD CONSTRAINT picto_inventory_pkey PRIMARY KEY (item_id);
-
-
---
--- Name: requisition_archive pk_requisition_archive; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.requisition_archive
-    ADD CONSTRAINT pk_requisition_archive PRIMARY KEY (rf_id);
 
 
 --
@@ -716,6 +889,14 @@ ALTER TABLE ONLY public.request_forms
 
 
 --
+-- Name: requisition_archive requisition_archive_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.requisition_archive
+    ADD CONSTRAINT requisition_archive_pkey PRIMARY KEY (archive_id);
+
+
+--
 -- Name: requisition_forms requisition_forms_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -737,6 +918,146 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_username_key UNIQUE (username);
+
+
+--
+-- Name: idx_requisition_archive_archived_at; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_archive_archived_at ON public.requisition_archive USING btree (archived_at);
+
+
+--
+-- Name: idx_requisition_archive_archived_by; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_archive_archived_by ON public.requisition_archive USING btree (archived_by);
+
+
+--
+-- Name: idx_requisition_archive_date_requested; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_archive_date_requested ON public.requisition_archive USING btree (date_requested);
+
+
+--
+-- Name: idx_requisition_archive_department; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_archive_department ON public.requisition_archive USING btree (department);
+
+
+--
+-- Name: idx_requisition_archive_is_restorable; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_archive_is_restorable ON public.requisition_archive USING btree (is_restorable);
+
+
+--
+-- Name: idx_requisition_archive_retention_expires; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_archive_retention_expires ON public.requisition_archive USING btree (retention_expires_at) WHERE (retention_expires_at IS NOT NULL);
+
+
+--
+-- Name: idx_requisition_archive_rf_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_archive_rf_id ON public.requisition_archive USING btree (rf_id);
+
+
+--
+-- Name: idx_requisition_archive_rf_id_unique; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX idx_requisition_archive_rf_id_unique ON public.requisition_archive USING btree (rf_id);
+
+
+--
+-- Name: idx_requisition_archive_search; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_archive_search ON public.requisition_archive USING btree (archived_at, department, archived_by);
+
+
+--
+-- Name: idx_requisition_archive_text_search; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_archive_text_search ON public.requisition_archive USING gin (to_tsvector('english'::regconfig, (((COALESCE(requester_name, ''::character varying))::text || ' '::text) || (COALESCE(purpose, ''::character varying))::text)));
+
+
+--
+-- Name: idx_requisition_forms_created_at; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_forms_created_at ON public.requisition_forms USING btree (created_at);
+
+
+--
+-- Name: idx_requisition_forms_date_requested; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_forms_date_requested ON public.requisition_forms USING btree (date_requested) WHERE (date_requested IS NOT NULL);
+
+
+--
+-- Name: idx_requisition_forms_department; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_forms_department ON public.requisition_forms USING btree (department);
+
+
+--
+-- Name: idx_requisition_forms_is_archived; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_forms_is_archived ON public.requisition_forms USING btree (is_archived);
+
+
+--
+-- Name: idx_requisition_forms_requester_name; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_forms_requester_name ON public.requisition_forms USING btree (requester_name);
+
+
+--
+-- Name: idx_requisition_forms_rf_number; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_forms_rf_number ON public.requisition_forms USING btree (rf_number) WHERE (rf_number IS NOT NULL);
+
+
+--
+-- Name: idx_requisition_forms_rs_number; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_forms_rs_number ON public.requisition_forms USING btree (rs_number) WHERE (rs_number IS NOT NULL);
+
+
+--
+-- Name: idx_requisition_forms_search; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_forms_search ON public.requisition_forms USING btree (department, is_archived, date_requested) WHERE (is_archived = false);
+
+
+--
+-- Name: idx_requisition_forms_workflow_dates; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_requisition_forms_workflow_dates ON public.requisition_forms USING btree (date_requested, checked_by_date, approved_by_date, issued_by_date, received_by_date) WHERE (is_archived = false);
+
+
+--
+-- Name: requisition_forms trigger_requisition_forms_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trigger_requisition_forms_updated_at BEFORE UPDATE ON public.requisition_forms FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 
 --
