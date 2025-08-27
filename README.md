@@ -1,5 +1,7 @@
 <img src="https://readme-typing-svg.herokuapp.com?font=Anaheim&size=32&duration=3000&pause=2000&color=1F51FF&width=1000&lines=PICTOIMS;Inventory+Management+System" alt="Typing SVG" />
 
+https://docs.google.com/document/d/1j60WuItgkwUmXcgiRoS-absq1kiQMFmU/edit?usp=drivesdk&ouid=102460866361677377158&rtpof=true&sd=true
+
 ## Installation Guide
 
 ### 1. Prerequisites (Download & Install)
